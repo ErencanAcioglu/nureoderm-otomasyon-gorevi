@@ -192,3 +192,68 @@ Bunlar `test/sema.test.js`'e kalıcı test olarak eklendi. Ağ yoksa bu testler 
 **B testleri: 42/42** (31 akış + 11 şema).
 
 **Sınır:** Şema doğrulaması **yapıyı** kanıtlar, çalışma anını kanıtlamaz. Örneğin metin yanıtında `$response.body` içeriği hâlâ ancak gerçek bir n8n çalıştırmasıyla doğrulanabilir.
+
+---
+
+## Prompt 5 — Gerçek n8n'de çalıştırma (ortak prompt, B kısmı)
+
+Tam metin: [`A-claude-code.md` › Prompt 13](A-claude-code.md#prompt-13--b-bonusu-gerçek-n8nde-çalıştırma-ve-ekran-görüntüsü).
+
+### Yapılanlar (Claude)
+
+**Kurulum:**
+- `npm view n8n` → 2.40.7, `engines: node >=24` (makinede v24.7.0; uyumlu).
+- Scratchpad'deki ayrı bir klasöre `npm install n8n@2.40.7` kuruldu (2 dk, 2,5 GB); repo ve ev dizini kirletilmedi.
+- Ortam değişkenleri:
+  - `N8N_USER_FOLDER` → geçici klasör (boş SQLite),
+  - dinleme yalnızca `127.0.0.1`,
+  - telemetri / sürüm bildirimi / şablon / kişiselleştirme kapalı,
+  - `GENERIC_TIMEZONE=Europe/Istanbul`.
+
+**İçe aktarma ve gerçek n8n'in bulduğu hata:**
+- `n8n import:workflow --input=B-n8n/workflow.json` **başarısız oldu**: `SQLITE_CONSTRAINT: NOT NULL constraint failed: workflow_entity.id`.
+  - Sebep: `workflow.json`'da üst düzey `id` yok; n8n'in kendi dışa aktarımları 16 karakterlik `id` taşır.
+  - Şema doğrulaması düğüm tanımlarını denetlediği için bunu göremezdi.
+  - Geçici kopyada `id` eklenerek doğrulandı; ardından `olustur.js`'e `id: 'NrdmFiyatTakip01'` eklendi, `workflow.test.js`'e 16 karakter kontrolü kondu.
+  - Repodaki `workflow.json` yeniden üretildi ve doğrudan içe aktarıldı → "Successfully imported 1 workflow".
+
+**Editör ve ekran görüntüleri:**
+- Yerel bir sahip hesabı REST ile oluşturuldu (`demo@yerel.test`, rastgele parola; yalnızca bu geçici örnek için).
+- Headless Chrome, bağımlılıksız küçük bir CDP (Chrome DevTools Protocol) istemcisiyle yönetildi: giriş, workflow açma, "Execute workflow from Her Gün 09:00" düğmesine tıklama, sonucun REST'ten beklenmesi, "zoom to fit" ve ekran görüntüsü.
+- Orijinal workflow tuvalde 16 düğüm + 3 not ile doğru görüntülendi. Sheets/Telegram'da kimlik uyarısı var; beklenen durum.
+
+**Kimlik bilgisi sorunu ve çözümü:**
+- Google Sheets ve Telegram kimlikleri yok. Bu yüzden **demo kopyada** yalnızca bu 5 düğüm n8n'in pin data özelliğiyle sabitlendi:
+  - "Önceki durum": sitenin güncel ürünleri; #31, #32, #33'ün fiyatı değiştirilmiş, #34 çıkarılmış.
+  - Diğer 4 düğüm: sabit "ok" çıktısı.
+- Repodaki `workflow.json`'da pin data yok.
+
+**Yürütmeler** (sonuçlar ekrandan değil, n8n veritabanındaki yürütme kaydından okundu):
+
+| # | Senaryo | Sonuç |
+|---|---|---|
+| 4 | Normal gün | `success` · 13 düğüm · HTTP **[20, 0]** · 117 ürün, 0 geçersiz, 0 tekrar · IF [1, 0] · Switch **[2, 1, 1]** · 3 mesaj · hata dalı çalışmadı |
+| 5 | `127.0.0.1:9` (bağlantı reddi) | `success` · HTTP **[0, 1]** (3 deneme sonrası hata çıkışı) → Hata Mesajı → Acil Uyarı · "Erişim hatası: connect ECONNREFUSED" |
+| 2 | Var olmayan sayfa adresi | Site **HTTP 200** + boş sayfa döndü → 0 ürün → IF [0, 1] → acil uyarı ("Veri doğrulama hatası") |
+
+**Doğrulanan / bulunan:**
+- HTTP sayfalama alan adları ve `$response.body` bitiş koşulu **gerçek n8n'de çalışıyor**. Daha önce yalnızca simüle edilebilen tek konu buydu.
+- Üretilen mesajlar Node.js simülasyonuyla birebir aynı.
+- **Ekranda görülen şüpheli etiket kontrol edildi:** Tuvalde sabitlenmiş Sheets düğümünün hata bağlantısında da mor "116 items" etiketi görünüyordu. Yürütme kaydında "Hata Mesajı Hazırla"nın **çalışmadığı** doğrulandı; etiket, n8n'in pin data gösterim biçimi.
+- Sitede var olmayan sayfaların bile 200 dönmesi, içerik tabanlı "0 ürün" doğrulamasının neden gerekli olduğunu kanıtladı.
+
+**Ekran görüntüsü tutarlılığı:**
+- İlk çekimlerde tuvaldeki "Kurulum" notu hâlâ "Canlı çalıştırılmadı" diyordu.
+- Not güncellendi, workflow yeniden üretilip içe aktarıldı, yürütmeler tekrarlandı (#4, #5) ve son görüntüler bu sürümden alındı.
+- Hata dalı için "(site 404)" başlıklı ilk demo kullanılmadı, çünkü site aslında 200 döndü ve başlık yanıltıcıydı. Yerine #5 kullanıldı.
+
+**Kapatma:**
+- n8n (5678/5679) ve Chrome (9222) `SIGTERM` ile kapatıldı; n8n logu "Stopping n8n...". Arka plan görevleri çıkış kodu 0.
+- Portlar boş, n8n süreci yok.
+
+**Belgeler:**
+- `akis-aciklama.md`'ye "Gerçek n8n'de çalıştırma" bölümü eklendi; sınırlar güncellendi.
+- README'de B bonusu "✅ Tamamlandı", `![n8n Akışı](docs/n8n-akisi.png)` gömülü; hata dalı görseli açılır bölümde.
+- **Kalan sınır:** Sheets ve Telegram gerçek hesaplarla denenmedi (pin data).
+
+**Testler:** B 42/42, şema doğrulaması 19/19.

@@ -24,6 +24,8 @@ test('temel yapı: benzersiz ad ve id, geçerli bağlantılar', () => {
     for (const hedef of main.flat()) assert.ok(adlar.includes(hedef.node), `bağlantı hedefi yok: ${hedef.node}`);
   }
   assert.equal(WORKFLOW.settings.executionOrder, 'v1');
+  // Gerçek n8n'de bulundu: CLI importu üst düzey id olmadan başarısız oluyor.
+  assert.match(WORKFLOW.id, /^[A-Za-z0-9]{16}$/, 'n8n CLI importu için 16 karakterlik id gerekli');
 });
 
 test('1) zamanlanmış tetikleyici: her gün 09:00 (Europe/Istanbul)', () => {

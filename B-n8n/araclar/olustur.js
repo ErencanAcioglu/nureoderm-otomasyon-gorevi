@@ -104,7 +104,7 @@ const nodes = [
     '- Google Sheets: `GOOGLE_SHEET_ID` yerine tablo adresi; iki sayfa: `fiyat_gecmisi`, `son_durum` (başlık satırları akis-aciklama.md\'de)',
     '- Telegram: kimlik bilgisi + `TELEGRAM_CHAT_ID`',
     '- Error Trigger: Workflow Settings → Error workflow → bu akış (ya da ayrı hata akışı)',
-    '- Canlı çalıştırılmadı; Code düğümleri Node.js ile gerçek site HTML\'i üzerinde test edildi (B-n8n/test).',
+    '- n8n 2.40.7\'de içe aktarılıp çalıştırıldı: kimlik gerektiren 5 düğüm pin data ile, diğerleri gerçek siteye karşı (docs/n8n-akisi.png).',
     '- Tüm düğümler n8n-nodes-base@2.15.1 tanımlarına karşı doğrulandı: `npm run dogrula` → 19/19, 0 hata.',
   ].join('\n')),
 
@@ -221,6 +221,9 @@ const connections = {
 };
 
 const workflow = {
+  // n8n CLI (`n8n import:workflow`) üst düzey id olmadan içe aktarmayı reddediyor
+  // ("NOT NULL constraint failed: workflow_entity.id"); n8n'in kendi dışa aktarımları da 16 karakterlik id taşır.
+  id: 'NrdmFiyatTakip01',
   name: 'Laptop Fiyat Takibi — webscraper.io (şablon #4640 uyarlaması)',
   nodes,
   connections,

@@ -20,7 +20,9 @@ from typing import Any, List
 
 IZINLI_EPOSTALAR = {"erencanacioglu@gmail.com", "noreply@anthropic.com"}
 EPOSTA_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-SISTEM_RE = re.compile(r"<system-reminder>.*?</system-reminder>|<ide_[a-z_]+>.*?</ide_[a-z_]+>", re.S)
+SISTEM_RE = re.compile(
+    r"<system-reminder>.*?</system-reminder>|<ide_[a-z_]+>.*?</ide_[a-z_]+>"
+    r"|<task-notification>.*?</task-notification>|\[SYSTEM NOTIFICATION[^\]]*\]", re.S)
 TR = timezone(timedelta(hours=3))
 CIKTI_SATIR = 30
 CIKTI_KARAKTER = 3000
@@ -112,7 +114,7 @@ def donustur(jsonl: Path) -> str:
         f"- Kullanıcı mesajı: {kullanici_no}",
         f"- Kaynak: `~/.claude/projects/<proje>/{jsonl.name}` → `promptlar/oturum_logu_cikar.py` ile üretildi",
         "- İçerik: kullanıcı mesajları ve Claude'un görünür yanıtları **olduğu gibi**; araç çağrıları ve kısaltılmış çıktıları.",
-        "- Hariç tutulanlar: araç ortamının eklediği sistem hatırlatmaları ve IDE bildirimleri (`<ide_opened_file>` vb.), görseller (yer tutucu), boş düşünce blokları.",
+        "- Hariç tutulanlar: araç ortamının eklediği sistem hatırlatmaları ve IDE bildirimleri (`<ide_opened_file>` vb.), arka plan görevi bildirimleri, görseller (yer tutucu), boş düşünce blokları.",
         "- Gizlilik: git kimliği dışındaki e-posta adresleri `[e-posta gizlendi]` olarak maskelendi.",
         "- Not: Log, üretildiği ana kadarki kayıtları içerir; son teslim mesajının yanıtı dosya yazıldıktan sonra tamamlandığından eksik olabilir.",
     ]

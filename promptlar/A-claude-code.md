@@ -559,3 +559,57 @@ Son commit hash'ini, test durumunu ve görsellerin README'deki yansımasını ö
 - Ham oturum logu commit'ten hemen önce yeniden üretildi.
 
 **Son test durumu:** A 74 (73 geçti, 1 canlı atlandı; canlı ayrıca geçti) · B 42/42 · şema 19/19 · canlı n8n simülasyonu başarılı.
+
+---
+
+## Prompt 12 — Teslim e-postası metni (repo değişikliği yok)
+
+```text
+Eline sağlık, proje tek kelimeyle kusursuz ve eksiksiz tamamlandı. Repoda hiçbir şeyi değiştirme, yeni bir commit veya push yapma; mevcut halini donduruyoruz.
+
+Senden yalnızca değerlendiriciye atacağım teslim e-postasında kullanmak üzere kısa, profesyonel bir özet istiyorum:
+1. Karşılanan tüm zorunlu isterler ve tamamlanan bonuslar (DummyJSON ürün arama, offline HTML dashboard, 20 sayfalık canlı n8n simülasyonu vb.).
+2. Aldığımız kritik mühendislik inisiyatifleri (IDOR/enumeration koruması, 117 ürün için ID bazlı diff motoru, n8n-nodes-base şema doğrulaması, Mesaj 8 için çoklu niyet hibrit yanıtı, iki dilli altyapı ve ham prompt logu şeffaflığı).
+
+Bunu doğrudan e-postanın gövdesine yapıştırabileceğim net, maddeli ve profesyonel bir teslim yazısı olarak hazırla; kod veya repo tarafına dokunma.
+```
+
+### Yapılanlar (Claude)
+
+- Repoya dokunulmadı; e-posta gövdesi sohbet yanıtı olarak üretildi.
+- **Düzeltme:** Prompt "20 sayfalık canlı n8n simülasyonu"nu tamamlanan bonuslar arasında saydı. Brief'teki B bonusu ise "akışı n8n'de çalıştırıp ekran görüntüsü eklemek"ti ve o anda yapılmamıştı. Metinde simülasyon "brief dışı ek", B bonusu "yapılmadı" olarak yazıldı.
+- Repo dondurulduğu için bu prompt o an kayıtlara eklenemedi; bir sonraki commit'te (Prompt 13) eklendi.
+
+---
+
+## Prompt 13 — B bonusu: gerçek n8n'de çalıştırma ve ekran görüntüsü
+
+> B'ye ait ayrıntılar `B-n8n.md` › Prompt 5'te.
+
+```text
+Bölüm B bonusunu da tamamlayalım; vaka metnindeki tüm zorunlu maddeler ve bonuslar %100 eksiksiz kapanmış olsun.
+
+Şunları sırasıyla yürüt:
+1. Yerelde arka planda n8n'i başlat (örn: `npx n8n start` veya geçici bir CLI/instance ile).
+2. 'B-n8n/workflow.json' dosyasını n8n arayüzüne/ortamına aktar ve akışı çalıştır (veya Canvas üzerinde düğüm bağlantıları ve execution durumunu gösteren görünümü getir).
+3. Headless Chrome veya eldeki araçlarla bu akışın/çalışmanın ekran görüntüsünü alıp 'docs/n8n-akisi.png' olarak kaydet.
+4. 'README.md' içerisindeki Bölüm B bonusu maddesini "Tamamlandı" olarak güncelle ve ekran görüntüsünü (`![n8n Akışı](docs/n8n-akisi.png)`) ilgili bölüme göm.
+5. İşlem bitince arka plandaki n8n sürecini temiz bir şekilde sonlandır.
+6. Ham oturum logunu ve prompt kayıtlarını bu adımla senkronize et.
+
+Yalnızca 'ErencanAcioglu' kimliğiyle, kesinlikle hiçbir Co-authored-by satırı olmadan son commit'i at ve pushla:
+git add . && git commit -m "feat(n8n): complete Section B bonus with execution screenshot and update docs"
+git push origin main
+
+Tamamlayınca son commit hash'ini ve son durumu bildir.
+```
+
+### Yapılanlar (Claude)
+
+Özet (ayrıntı `B-n8n.md` › Prompt 5):
+- n8n 2.40.7 geçici bir klasöre kuruldu; içe aktarıldı ve editörden çalıştırıldı.
+- Kimlik gerektiren 5 düğüm pin data ile sabitlendi, geri kalan her şey gerçek siteye karşı çalıştı.
+- **Gerçek n8n bir hata buldu:** workflow.json'da üst düzey `id` yoktu ve CLI importu başarısız oldu. Düzeltildi ve teste bağlandı.
+- Normal gün (#4) ve hata dalı (#5) yürütmeleri başarılı. Ekran görüntüleri `docs/n8n-akisi.png` ve `docs/n8n-hata-dali.png`.
+- README'deki B bonusu "Tamamlandı" olarak güncellendi; `![n8n Akışı](docs/n8n-akisi.png)` gömüldü.
+- n8n ve headless Chrome `SIGTERM` ile kapatıldı; portlar boş.

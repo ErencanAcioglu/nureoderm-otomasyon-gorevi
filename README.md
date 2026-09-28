@@ -22,7 +22,7 @@ Tüm iş Claude Code ile yapıldı; promptlar `promptlar/` altında sırasıyla 
 |---|---|
 | Görev süresi | E-postanın alınmasından itibaren 3 saat |
 | Claude Code oturumu başlangıcı | **28.09.2026 11:59** (UTC+3), oturum kaydındaki ilk mesaj |
-| Son teslim commit'i | **28.09.2026 13:04** (UTC+3) |
+| Son teslim commit'i | **28.09.2026 13:18** (UTC+3) |
 
 Saatler oturum kaydından (`promptlar/ham-oturum-logu.md`) alındı. E-postanın alındığı saat bu kayıtta yok.
 
@@ -76,7 +76,7 @@ cevap taslağı ve notlar açılır.
 │   ├── araclar/olustur.js         workflow.json üreticisi
 │   ├── araclar/sema-dogrula.js    n8n kurmadan, gerçek düğüm tanımlarına karşı şema doğrulaması
 │   └── test/                      42 test + canlı simülasyon + gerçek site HTML fixture'ları
-├── docs/                          README görselleri (dashboard, terminal)
+├── docs/                          README görselleri (dashboard, terminal, n8n çalıştırmaları)
 └── promptlar/
     ├── A-claude-code.md           A bölümü promptları + her adımda yapılanlar
     ├── B-n8n.md                   B bölümü promptları + mimari kararlar
@@ -145,6 +145,35 @@ düğüm tanımlarına (`n8n-nodes-base@2.15.1` › `dist/types/nodes.json`) kar
 - Bağlantılardaki çıkış sayıları.
 
 Sonuç **19/19 düğüm geçerli, 0 hata**; düzeltme gerekmedi. Doğrulayıcının gerçekten hata yakaladığı 10 bilinçli bozma testiyle kanıtlandı (ör. `operation: "getAll"`, `maxRequest` yazım hatası, JSON yanıtta görünmeyen `outputPropertyName`, olmayan `typeVersion`, IF'e 3. çıkış).
+
+**Bonus — gerçek n8n'de çalıştırma: ✅ Tamamlandı**
+
+`workflow.json`, n8n **2.40.7** (yerel, geçici kurulum) içine CLI ile aktarıldı ve editörden çalıştırıldı.
+Google Sheets ve Telegram kimlik bilgileri olmadığı için yalnızca bu **5 düğüm** n8n'in *pin data* (sabit
+çıktı) özelliğiyle sabitlendi (ekranda mor çerçeveli):
+- 3 Google Sheets: önceki gün olarak sitenin güncel ürünleri kullanıldı; 3 fiyat değiştirildi, 1 ürün çıkarıldı.
+- 2 Telegram.
+
+Diğer tüm düğümler gerçek siteye karşı **gerçekten** çalıştı.
+
+![n8n Akışı](docs/n8n-akisi.png)
+
+<sub>Yürütme #4 · <code>success</code> · 7 sn. HTTP sayfalama 20 sayfayı çekip kendiliğinden durdu → 117 ürün ayrıştırıldı
+(fiyatlar <code>number</code>) → veri geçerli → değişiklik tespiti 117 ürün → Switch: 2 indirim · 1 artış · 1 yeni → 3 mesaj → Telegram.</sub>
+
+Hata dalı da gerçek n8n'de çalıştırıldı: site adresi erişilemez bir adrese çevrildiğinde HTTP düğümü
+3 denemeden sonra hata çıkışına düştü → "Hata Mesajı Hazırla" → "Acil Uyarı".
+
+<details><summary>Hata dalı ekran görüntüsü (yürütme #5)</summary>
+
+![n8n hata dalı](docs/n8n-hata-dali.png)
+
+</details>
+
+Gerçek n8n çalıştırmasının kanıtladıkları ve bulduğu sorunlar:
+- HTTP sayfalama alan adları ve `$response.body` bitiş koşulu gerçek n8n'de çalışıyor. Bu, daha önce yalnızca simüle edilebilen tek konuydu.
+- **Bulunan ve düzeltilen hata:** n8n CLI, üst düzey `id` alanı olmayan bir workflow'u içe aktarmıyor (`NOT NULL constraint failed: workflow_entity.id`). Şema doğrulaması ve testler bunu yakalayamazdı. `workflow.json`'a 16 karakterlik `id` eklendi ve teste bağlandı.
+- **Bulgu:** Sitede var olmayan bir sayfa bile **HTTP 200** ile boş sayfa dönüyor. "Site açılmazsa" durumunu yalnızca HTTP koduna bakarak yakalamak mümkün değil; içerik tabanlı "0 ürün" doğrulaması bu yüzden gerekli. Bu dal da gerçek n8n'de çalıştırılıp doğrulandı.
 
 **Canlı simülasyon (n8n olmadan, gerçek site):**
 - Sayfalama 20 istekte kendiliğinden durdu.
@@ -228,6 +257,9 @@ Sonuç **19/19 düğüm geçerli, 0 hata**; düzeltme gerekmedi. Doğrulayıcın
 - **Doğrulayıcının kendi hatası:** İlk sürüm HTTP düğümü için `httpSslAuth` kimliğini "gerekli" gösteriyordu.
   Bu kimlik yalnızca SSL sertifikası seçeneği açıkken gerekli; kimlik koşulları da `displayOptions`'a göre
   değerlendirilecek şekilde düzeltildi.
+- **Gerçek n8n'in bulduğu hata:** `workflow.json`'da üst düzey `id` yoktu; n8n CLI importu bu yüzden
+  başarısız oldu. Şema doğrulaması düğüm tanımlarını denetlediği için bunu göremezdi. `id` eklendi ve testle
+  sabitlendi.
 - **Yanlış alarmlar:**
   - Bir çıktıda bir paragraf eksik görünüyordu. Sebep, grep filtremin "Ü" ile başlayan satırı gizlemesiydi; kodda hata yoktu.
   - Mutasyon betiğinde test modülü fonksiyonu mutasyonlu haldeyken import ettiği için bir sahte hata görüldü.
@@ -235,12 +267,10 @@ Sonuç **19/19 düğüm geçerli, 0 hata**; düzeltme gerekmedi. Doğrulayıcın
 
 ## Bitmeyenler ve sınırlar
 
-- **n8n akışı canlı çalıştırılmadı** (görev gerektirmiyor). Code düğümleri n8n'in `$input` / `$()`
-  arayüzünü taklit eden bir kum havuzunda, gerçek site HTML'iyle test edildi. HTTP düğümünün sayfalama
-  davranışı Node.js'te aynı kurallarla taklit edildi. `workflow.json`'ın **yapısı** n8n'in gerçek düğüm
-  tanımlarına karşı doğrulandı (19/19). Doğrulanamayan tek kısım çalışma anı davranışı (ör. metin yanıtında
-  `$response.body` içeriği); import sonrası tek bir manuel çalıştırma önerilir. n8n ekran görüntüsü yok;
-  `docs/` altındaki görseller A'nın dashboard'u ve terminal çıktısıdır.
+- **n8n çalıştırması kimlik bilgisi olmadan yapıldı:** Akış gerçek n8n'de çalıştırıldı, ama Google Sheets ve
+  Telegram düğümleri pin data ile sabitlendi. Bu 5 düğümün gerçek API'ye yazma/gönderme davranışı (Sheets
+  kolon eşlemesi, Telegram mesaj gönderimi) gerçek hesaplarla denenmedi. Kurulumda bir kez gerçek
+  kimliklerle çalıştırılması önerilir.
 - n8n'de Error Trigger'ın çalışması için akışın *Workflow Settings → Error workflow* olarak seçilmesi gerekir.
   Siteden kaldırılan ürünler için bildirim yok.
 - DummyJSON para birimi vermediği için tutarlar **USD** varsayıldı. API kargo durumu içermediği için taslakta

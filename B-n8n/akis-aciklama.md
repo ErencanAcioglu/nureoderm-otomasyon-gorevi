@@ -125,16 +125,40 @@ node test/canli-kazima.js     # canlı uçtan uca simülasyon                   
 - **Testin yakaladığı hata:** `Number('') === 0` olduğu için Sheets'teki boş fiyat hücresi önceki fiyat
   $0 sayılıyor ve sahte bir "Fiyat Artışı" alarmı üretiyordu. Düzeltildi: boş hücre artık geçersiz sayılıyor.
 
+## Gerçek n8n'de çalıştırma (bonus)
+
+- **Ortam:** n8n **2.40.7** (Node 24), geçici yerel kurulum ve boş bir SQLite veritabanı. Telemetri ve şablon
+  paylaşımı kapalıydı. İş bitince süreç `SIGTERM` ile temiz kapatıldı.
+- **İçe aktarma:** `n8n import:workflow --input=B-n8n/workflow.json` → "Successfully imported 1 workflow".
+  - **İlk denemede başarısız oldu:** üst düzey `id` alanı yoktu (`NOT NULL constraint failed: workflow_entity.id`).
+  - `olustur.js` artık `id: 'NrdmFiyatTakip01'` yazıyor; `workflow.test.js` bunu denetliyor.
+- **Çalıştırma:** Google Sheets ve Telegram kimliği olmadığı için yalnızca bu 5 düğüm n8n'in *pin data* özelliğiyle
+  sabitlendi (demo kopyada; repodaki `workflow.json`'da pin data yok):
+  - `Önceki Durumu Oku`: sitenin güncel 116 ürünü; #31, #32, #33'ün fiyatı değiştirilmiş, #34 çıkarılmış.
+  - İki Sheets yazma düğümü ve iki Telegram düğümü: sabit "ok" çıktısı.
+
+  Kalan 11 düğüm gerçek siteye karşı gerçekten çalıştı.
+
+| Yürütme | Senaryo | Sonuç (yürütme kaydından) |
+|---|---|---|
+| #4 | Normal gün | `success`, 13 düğüm çalıştı. HTTP **20 sayfa** (hata çıkışı 0) → 117 ürün, 0 geçersiz, 0 tekrar, `veri_gecerli: true` → IF true → değişiklik tespiti 117 → Switch **2 / 1 / 1** → 3 mesaj → Telegram. Hata dalı çalışmadı. |
+| #5 | Site erişilemez (`127.0.0.1:9`) | `success`. HTTP 3 denemeden sonra **hata çıkışı** (1) → "Hata Mesajı Hazırla" → "Acil Uyarı". Mesaj: `Erişim hatası: connect ECONNREFUSED`. |
+| (ek) | Var olmayan sayfa adresi | Site **HTTP 200** ile boş sayfa döndü → 0 ürün → IF **false** → acil uyarı ("Veri doğrulama hatası: Hiç ürün ayrıştırılamadı"). HTTP koduna değil içeriğe bakan doğrulamanın neden gerekli olduğunu gösteriyor. |
+
+Ekran görüntüleri: `docs/n8n-akisi.png` (#4), `docs/n8n-hata-dali.png` (#5).
+
+n8n'in ürettiği mesajlar, Node.js simülasyonundakilerle birebir aynı (ör. `Packard 255 G2 (#31): $466.99 → $416.99 (-10.71%)`).
+Böylece `$response.body` bitiş koşulu ve HTTP sayfalama alan adları gerçek n8n'de doğrulanmış oldu; daha önce
+yalnızca simüle edilebilen tek konu buydu.
+
 ## Sınırlar ve dürüst notlar
 
-- **Akış n8n'de canlı çalıştırılmadı** (görev gerektirmiyor). `workflow.json`'ın **yapısı** n8n'in gerçek
-  düğüm tanımlarına karşı doğrulandı (19/19). Code düğümleri n8n'in `$input` / `$()` arayüzünü taklit eden
-  bir kum havuzunda test edildi. HTTP sayfalama davranışı canlı simülasyonda aynı kurallarla (aynı bitiş
-  ifadesi, aynı sınır) taklit edildi. Doğrulanamayan tek şey çalışma anı davranışı (ör. metin yanıtında
-  `$response.body`'nin içeriği); import sonrası tek bir manuel çalıştırmayla doğrulanması önerilir.
-- `$pageCount`'un ilk istekte `0` olduğu varsayıldı (n8n dokümantasyonundaki `{{ $pageCount + 1 }}`
-  kalıbı). İlk istek parametresiz giderse site yine sayfa 1'i döner; ayrıştırıcı URL'ye göre tekrar
-  ayıkladığı için veri bozulmaz, en fazla bir fazladan istek yapılır.
+- **Kimlik bilgisi gerektiren 5 düğüm gerçek API'lerle denenmedi.** Akış gerçek n8n'de çalıştırıldı (yukarıda),
+  ancak Google Sheets okuma/yazma ve Telegram gönderimi pin data ile sabitlendi. Sheets kolon eşlemesinin ve
+  Telegram gönderiminin gerçek hesaplarla bir kez denenmesi önerilir.
+- `$pageCount + 1` kalıbıyla gerçek n8n'de 20 istek yapıldı ve 0 tekrar eden ürün görüldü. (İlk istek
+  parametresiz gitseydi bile site sayfa 1'i döndüğü ve ayrıştırıcı URL'ye göre tekrar ayıkladığı için veri
+  bozulmazdı.)
 - **Error Trigger** yalnızca bu akış n8n'de *Workflow Settings → Error workflow* olarak seçildiğinde
   tetiklenir. Üretimde bu dalın ayrı bir "hata akışına" taşınması daha yaygın bir düzendir.
 - Siteden **kaldırılan** ürünler şu an bildirilmiyor; `son_durum`'da son görülme tarihiyle kalıyor.
