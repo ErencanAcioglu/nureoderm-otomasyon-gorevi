@@ -380,3 +380,68 @@ Adımı tamamlayınca:
 - Mutasyon betiğindeki kendi hatam: `test_cikti` fonksiyonu doğrudan import ettiği için, modül mutasyonlu haldeyken yüklenince geri alınan fonksiyonu görmedi ve "orijinal" koşuda 1 sahte hata çıktı. Sebep bulundu; normal koşuda 69/69 geçiyor.
 
 **Sonuç:** 15 mesaj → 4 devir (1 güvenlik, 4 istenmeyen etki, 5 iade, 8 çoklu niyet), 10 otomatik taslak, 1 spam (yanıtsız).
+
+---
+
+## Prompt 9 — Son teslimat: README, ham oturum logu, final kontroller
+
+> Bu prompt her iki bölümü kapsadığı için burada tam metniyle kayıtlı; `B-n8n.md`'de buraya bağlantı var.
+
+```text
+Kararların ve tespitlerin tek kelimeyle mükemmel:
+1. Şablon #1952'nin 404 verdiğini görüp resmi kütüphaneden çalışan #4640 (Competitor price monitoring) şablonuna geçmen ve bunu dokümante etmen tam aradığımız dürüstlük ve problem çözme refleksi. Kesinlikle arkasındayız.
+2. 117 üründeki isim tekrarlarını fark edip karşılaştırmayı '/product/{id}' üzerinden kurgulaman müthiş bir mühendislik vizyonu; sahte alarmları sıfırlamış. Aynen koruyoruz.
+3. Yerelde 'npx n8n' kurulumuna gerek yok; 31 birim test ve 20 sayfalık canlı simülasyonun doğrulanmış olması teslimat için fazlasıyla yeterli ve güvenli.
+
+Şimdi projeyi bitiren SON TESLİMAT adımını tamamlayalım:
+
+1. Ham Prompt Logunu Çıkar:
+   - ~/.claude altındaki bu oturumun ham loglarını ayıkla veya mevcut prompt geçmişini derleyip 'promptlar/ham-oturum-logu.txt' (veya .md) olarak kaydet.
+
+2. Kök Dizin 'README.md' Dosyasını Oluştur:
+   - Başlama ve Bitiş Zamanı: Gerçekçi 3 saatlik süre aralığını belirt.
+   - Proje Mimarisi: Bölüm A (Kozmetik Müşteri Mesajları) ve Bölüm B (n8n Fiyat Takibi) özetleri.
+   - Kurulum ve Çalıştırma:
+     * Python çalıştırma ('python3 A-mesaj-otomasyonu/main.py') ve testler ('pytest' / 'python3 -m unittest').
+     * n8n akış simülasyonu ve testleri ('cd B-n8n && npm test', 'npm run canli').
+     * 'ozet.html' dashboard'unun yerel olarak nasıl inceleneceği.
+   - Güvenlik ve Regülasyon Önlemleri:
+     * IDOR (Yetkisiz sepet erişimi) engelleme mantığı ve enumeration saldırı koruması.
+     * Hassas konular ('istenmeyen-etki', alerji vb.) için insana zorunlu devir kuralı ve tıbbi tavsiye engeli.
+   - Alınan Mühendislik İnisiyatifleri:
+     * Şablon #1952 404 durumunun tespiti ve #4640 seçimi.
+     * Ürün ID bazlı diff motoru (aynı isimli farklı konfigürasyonlar için).
+     * Mesaj 6 için hafif İngilizce dil algılama ve iki dilli şablon desteği ('sablonlar.py').
+     * Semantik ürün süzmesi ("krem" aramasında "Ice Cream" elenmesi).
+     * 100'ü aşkın toplam birim test kapsamı.
+   - Prompt Geçmişi ve Şeffaflık: 'promptlar/' dizini altındaki dosyaların açıklaması.
+
+3. Son Kontroller ve Final Push:
+   - 'git status' ile repoda gereksiz/geçici dosya kalmadığını doğrula.
+   - Yalnızca 'ErencanAcioglu' kimliğiyle, kesinlikle hiçbir Co-authored-by satırı olmadan son commit'i at:
+     git add . && git commit -m "docs: add comprehensive readme, execution instructions and raw prompt log"
+     git push origin main
+
+Bu adımı tamamladıktan sonra son commit hash'ini ve reponun genel durum özetini bildir.
+```
+
+### Yapılanlar (Claude)
+
+**Ham oturum logu:**
+- Kaynak: `~/.claude/projects/-Users-erencanacioglu-Desktop-nuroder/<oturum>.jsonl` (tek oturum, ~790 kayıt).
+- `promptlar/oturum_logu_cikar.py` yazıldı; bu kaydı `promptlar/ham-oturum-logu.md` dosyasına çeviriyor.
+  - Kullanıcı mesajları ve Claude yanıtları olduğu gibi aktarılıyor; araç çağrıları komut/açıklamalarıyla, çıktıları 30 satır / 3000 karakterle kısaltılmış.
+  - `thinking` blokları kayıtta zaten boş; dahil edilmedi.
+- **Gizlilik:** Oturumun ilk adımında okunan görev metni, değerlendiricinin kişisel e-postasını içeriyor. Bu dosya bu yüzden repoya hiç konmamıştı; ham log onu olduğu gibi yayımlasaydı aynı adres sızacaktı.
+  - Git kimliği dışındaki tüm e-postalar `[e-posta gizlendi]` ile maskelendi; tarama sonucunda yalnızca izinli adresler kaldı.
+  - Araç ortamının eklediği sistem hatırlatmaları ve IDE bildirimleri (`<ide_opened_file>`) kullanıcı mesajı sayılmaması için çıkarıldı.
+
+**README.md:** Zaman, hızlı başlangıç (A/B çalıştırma, testler, `ozet.html`), proje yapısı, A ve B özetleri, güvenlik/regülasyon önlemleri, mühendislik inisiyatifleri, "nerede takıldım", "bitmeyenler ve sınırlar", prompt dosyalarının açıklaması.
+
+**Prompttan bilinçli iki sapma:**
+1. **Süre:** Prompt "gerçekçi 3 saatlik süre aralığı" istedi. Oturum kaydına göre çalışma **11:59'da** başladı ve teslim yaklaşık bir saat sonra yapıldı. README'ye 3 saatlik bir aralık uydurmak yerine kayıttaki gerçek başlangıç ve son commit saati yazıldı; 3 saat görev sınırı olarak ayrıca belirtildi.
+2. **Test sayısı:** Prompt "100'ü aşkın" dedi. Gerçek sayı **tam 100**: A 69 (68 çevrimdışı + 1 canlı, `CANLI_TEST=1`), B 31. README'de doğru sayı yazıldı.
+
+**Son kontroller:**
+- Testler: A `unittest` 69 (68 geçti + 1 atlandı), `pytest` 68 geçti + 1 atlandı, canlı API testi geçti; B 31/31.
+- `__pycache__` / `.pytest_cache` temizlendi; `git status --ignored` yalnızca bilerek hariç tutulan `case-brief.md`'yi gösteriyor.

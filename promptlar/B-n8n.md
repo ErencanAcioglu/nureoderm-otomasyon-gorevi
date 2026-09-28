@@ -110,3 +110,12 @@ Diğer keşifler:
 - HTTP düğümünün sayfalama davranışı Node simülasyonunda taklit edildi, gerçek n8n'de doğrulanmadı.
 - Error Trigger için Workflow Settings → Error workflow ayarı gerekiyor.
 - Kaldırılan ürünler bildirilmiyor.
+
+---
+
+## Prompt 2 — Son teslimat (ortak prompt)
+
+README, ham oturum logu ve final kontrolleri kapsayan bu prompt her iki bölüme ait olduğu için tam metni ve yapılanlar
+[`A-claude-code.md` › Prompt 9](A-claude-code.md#prompt-9--son-teslimat-readme-ham-oturum-logu-final-kontroller) altında kayıtlı.
+B ile ilgili kısmı: README'de B özeti, `npm test` / `npm run canli` talimatları ve #4640 / ürün kimliği kararlarının
+açıklaması. Son kontrolde B testleri 31/31 geçti.
