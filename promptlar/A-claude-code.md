@@ -214,3 +214,77 @@ Kodu güncelle, mantığı test et. Ardından:
 **Karar kaydı:** Prompt 1'de açık kalan "mesaj 4 taslağına sağlık cümlesi eklensin mi?" sorusu bu promptla kapandı: yalnızca kurumsal devir şablonu, sağlık tavsiyesi yok.
 
 Çalıştırma: `python3 A-mesaj-otomasyonu/main.py [--detay]` · Testler: `cd A-mesaj-otomasyonu && python3 -m unittest -v`
+
+---
+
+## Prompt 7 — DummyJSON sipariş entegrasyonu ve IDOR koruması
+
+```text
+Harika. Şimdi 'siparis-durumu' kategorisindeki mesajlar için DummyJSON API entegrasyonunu kuralım:
+Endpoint: GET https://dummyjson.com/carts/{id}
+
+'A-mesaj-otomasyonu/otomasyon/api.py' dosyasını oluşturup gerekli HTTP istemcisini yazalım. Burada kritik bir backend güvenlik açığını (IDOR / Yetkisiz Veri Erişimi) engellememiz gerekiyor:
+
+1. Mesaj metninden sipariş numarasını regex ile ayıkla (Türkçe ve İngilizce formatları desteklesin: "12 numaralı", "#3", "siparişim 4").
+2. API'den sipariş verisini çek.
+3. GÜVENLİK DOĞRULAMASI: 
+   - Dönen sepetteki 'userId' değeri ile mesajın sahibi olan 'musteri_id' değeri birebir eşleşiyor mu kontrol et.
+   - EĞER EŞLEŞMİYORSA: Bu bir veri sızıntısı riskidir! Bilgiyi ASLA paylaşma, 'devret: true' yap ve 'not' alanına "GÜVENLİK UYARISI: Sipariş sahibi (userId) ile müşteri (musteri_id) eşleşmiyor - Yetkisiz sorgulama engellendi" yaz.
+   - EĞER EŞLEŞİYORSA: Ürün adlarını, adetlerini ve toplam sepet tutarını içeren şık bir bilgilendirme metni üret.
+4. Hata Yönetimi: DummyJSON 404 ("Cart with id '...' not found") dönerse sistem çökmemeli; nazik bir "Sipariş sistemde bulunamadı" mesajı üretip 'devret: false' olarak kullanıcıya durumu bildir.
+
+Bu kontrolü 'isleyici.py' ile bağla ve 15 mesaj üzerinde test et. 
+
+Adımı tamamlayınca:
+1. Bu promptu ve güvenlik kontrol detaylarını 'promptlar/A-claude-code.md' dosyasına ekle.
+2. Kesinlikle hiçbir 'Co-authored-by' satırı eklemeden, tek yazar (ErencanAcioglu) olarak commit at ve pushla:
+   git add . && git commit -m "feat(security): integrate dummyjson carts api with strict customer id verification"
+   git push origin main
+```
+
+### Yapılanlar (Claude)
+
+Önce API davranışı canlı doğrulandı: `/carts/9999` ve `/carts/abc` → **HTTP 404** + `{"message": "Cart with id '...' not found"}`; sepet şeması `id, userId, products[title, quantity], total`.
+
+**`otomasyon/api.py`** (yeni, yalnızca stdlib `urllib`):
+- `DummyJSONIstemcisi.sepet_getir(id)` → `SepetSorgusu(durum = BULUNDU | BULUNAMADI | HATA)`. Hiçbir durumda istisna dışarı sızmaz.
+  - 404 → `BULUNAMADI`; ağ hatası / zaman aşımı (10 sn) / 5xx → 1 kez tekrar dener, sonra `HATA`; 4xx tekrar denenmez.
+  - Bozuk / beklenmeyen gövde (ör. `userId` sayı değil) → `HATA`.
+  - Başarılı ve 404 yanıtlar çalışma boyunca önbelleğe alınır, geçici hatalar alınmaz.
+- **Sipariş no ayıklama** (`metin.siparis_numaralari`): `12 numaralı`, `#3`, `siparişim 4`, `order 77`, `7 nolu` desteklenir; sayı ancak bir çapa ifadesinin yanındaysa alınır ("200 ml" alınmaz).
+
+**Güvenlik kontrolü detayları (IDOR):**
+1. **Birebir eşleşme:** `dogrula(sepet, musteri_id)`, `userId == musteri_id` karşılaştırmasını tür dahil yapar. `"5"`, `5.0`, `None`, `True` gibi değerler doğrulanmaz, yani belirsizlikte kapalı kalınır (fail-closed).
+2. **Yapısal koruma:** Sipariş içeriği yalnızca `siparis_bilgi_metni(DogrulanmisSepet)` ile metne dökülebilir. `DogrulanmisSepet` sadece doğrulama başarılıysa oluşur; ham `Sepet` verilirse `TypeError` fırlatılır.
+3. **Eşleşmezse:** `devret: true`; not alanına tam olarak istenen `GÜVENLİK UYARISI: …` metni ile sorgulanan sipariş no ve `musteri_id` yazılır. Siparişin gerçek sahibinin `userId`'si nota da yazılmaz. Ürün, adet, tutar hiçbir alana girmez.
+4. **Enumeration (numara taraması) koruması (ek inisiyatif):** Yetkisiz sipariş ile var olmayan sipariş müşteriye **aynı metinle** yanıtlanır ("…hesabınızla eşleşen kayıtlarımızda bulunamadı…"). Aksi halde biri numaraları deneyerek hangi siparişlerin var olduğunu öğrenebilirdi. Fark yalnızca iç alanlarda (`devret`, `not`) vardır.
+5. **Birden fazla sipariş no:** Biri bile yetkisizse hiçbirinin bilgisi paylaşılmaz.
+6. **Çoklu niyet (mesaj 8):** Mesaj zaten devredilse de sahiplik yine kontrol edilir ve nota yazılır; taslak nötr devir metni kalır.
+7. **Politika denetimi:** Notunda güvenlik uyarısı olan bir Talep `devret: false` ile çıkamaz (`PolitikaIhlali`).
+
+**Hata yönetimi:**
+- 404 → "…numaralı sipariş hesabınızla eşleşen kayıtlarımızda bulunamadı. Sipariş numaranızı kontrol ederek tekrar iletebilir misiniz?…" metni ve `devret: false`. Prompt 1'de açık kalan mesaj 3 kararı böylece kapandı.
+- API'ye ulaşılamazsa sessizce geçilmez: `devret: true` ve "Sipariş sistemine ulaşılamadı" notu.
+- Mesajda sipariş numarası yoksa müşteriden numara istenir.
+
+**Eşleşen sipariş taslağı:** Ürün adı × adet listesi ve `Toplam tutar: 1.467,88 USD`. DummyJSON para birimi vermediği için USD varsayıldı. API kargo durumu içermediği için temsilciye "takip bilgisi eklenmeli" notu düşülür; taslakta kargo durumu uydurulmaz.
+
+**15 mesaj — canlı API sonucu:**
+
+| # | Müşteri | Sipariş | Sonuç |
+|---|---|---|---|
+| 1 | 7 | 12 (userId 12) | **Engellendi**, devret, güvenlik uyarısı, hiçbir sepet verisi yok |
+| 2 | 5 | 5 | Doğrulandı: Samsung Galaxy Tab White ×4, Soft Drinks ×4, Powder Canister ×4 — 1.467,88 USD |
+| 3 | 22 | 9999 | Bulunamadı (404), devret: false, nazik uyarı |
+| 6 | 3 | #3 | Doğrulandı: 6 ürün — 1.794,85 USD |
+| 8 | 4 | 4 | Doğrulandı ama çoklu niyet nedeniyle devret, nötr taslak |
+
+Devir: 4/15 (1, 4, 5, 8).
+
+**Testler:** 46 test (+1 canlı test, `CANLI_TEST=1` ile), hepsi geçti. Birim testleri ağa çıkmaz; `tests/sahte_istemci.py` DummyJSON'un gerçek yanıtlarından alınmış verilerle çalışır. HTTP katmanı `unittest.mock` ile 404 / ağ hatası (tekrar deneme sayısı dahil) / 503 / önbellek senaryolarında test edildi. Canlı test gerçek API'de `#12 → userId 12` ve `#9999 → bulunamadı` doğruladı.
+
+**Mutasyon kontrolü:** `dogrula` her sepeti onaylayacak şekilde bozuldu (IDOR açığı enjekte edildi) → 4 güvenlik testi başarısız oldu (sızıntı, uyarı, enumeration, çoklu niyet). Testlerin açığı gerçekten yakaladığı doğrulandı.
+
+**Bilinen sınır:** İngilizce yazan müşteriye (mesaj 6) taslak Türkçe üretiliyor; dil algılama henüz yok.
+
+Çalıştırma: `python3 A-mesaj-otomasyonu/main.py [--detay]` (canlı API) · Testler: `cd A-mesaj-otomasyonu && python3 -m unittest -v`
