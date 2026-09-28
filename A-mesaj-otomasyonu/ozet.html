@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesaj Özeti · Nureoderm</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f1f3f6; --text: #111827; --muted: #6b7280;
+  --line: #e5e7eb; --accent: #0f766e; --danger: #dc2626; --danger-bg: #fef2f2;
+  --ok: #15803d; --ok-bg: #f0fdf4; --warn: #b45309; --warn-bg: #fffbeb;
+  --k-urun-sorusu: #2563eb; --k-fiyat: #7c3aed; --k-siparis-durumu: #0d9488;
+  --k-iade-sikayet: #d97706; --k-istenmeyen-etki: #e11d48; --k-diger: #64748b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0f14; --panel: #121821; --panel-2: #18202b; --text: #e5e7eb; --muted: #9ca3af;
+    --line: #243040; --accent: #2dd4bf; --danger: #f87171; --danger-bg: #2a1215;
+    --ok: #4ade80; --ok-bg: #0f2418; --warn: #fbbf24; --warn-bg: #2a2110;
+    --k-urun-sorusu: #60a5fa; --k-fiyat: #a78bfa; --k-siparis-durumu: #2dd4bf;
+    --k-iade-sikayet: #fbbf24; --k-istenmeyen-etki: #fb7185; --k-diger: #94a3b8;
+    --shadow: none; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+.kap { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; margin-bottom: 20px; }
+h1 { margin: 0; font-size: 24px; letter-spacing: -.01em; }
+.alt { color: var(--muted); font-size: 13px; }
+.kartlar { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kart { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+.kart .etiket { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.kart .deger { font-size: 28px; font-weight: 650; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.kart .ek { color: var(--muted); font-size: 12px; }
+.kart.kirmizi .deger { color: var(--danger); } .kart.yesil .deger { color: var(--ok); } .kart.sari .deger { color: var(--warn); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; box-shadow: var(--shadow); }
+.izgara { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; margin-bottom: 16px; }
+@media (max-width: 860px) { .izgara { grid-template-columns: 1fr; } }
+h2 { font-size: 15px; margin: 0 0 12px; }
+.dagilim { display: grid; gap: 9px; }
+.dsatir { display: grid; grid-template-columns: 128px 1fr 64px; align-items: center; gap: 10px; font-size: 13px; }
+.cubuk { height: 12px; background: var(--panel-2); border-radius: 6px; overflow: hidden; display: flex; }
+.cubuk span { display: block; height: 100%; }
+.cubuk .dv { background: repeating-linear-gradient(135deg, var(--danger) 0 4px, transparent 4px 7px); opacity: .9; }
+.sayi { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lejant { display: flex; gap: 16px; color: var(--muted); font-size: 12px; margin-top: 12px; }
+.lejant i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--muted); }
+.lejant i.dv { background: repeating-linear-gradient(135deg, var(--danger) 0 3px, transparent 3px 5px); }
+.dikkat { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.dikkat li { display: grid; grid-template-columns: 38px 1fr; gap: 8px; font-size: 13px; }
+.dikkat b { color: var(--danger); font-variant-numeric: tabular-nums; }
+.dikkat span { color: var(--muted); }
+.dikkat .konu { display: flex; margin-bottom: 2px; }
+.dikkat .konu span { color: var(--text); }
+.filtre { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.cip { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 999px; padding: 5px 12px;
+  font: inherit; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.cip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.cip .n { opacity: .65; font-variant-numeric: tabular-nums; }
+.nokta { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.bosluk { flex: 1; }
+select, input[type=search] { font: inherit; font-size: 13px; color: var(--text); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+input[type=search] { min-width: 220px; }
+@media (max-width: 560px) { input[type=search] { min-width: 0; width: 100%; } .bosluk { display: none; } }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em;
+  padding: 8px 10px; border-bottom: 1px solid var(--line); }
+td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.satir { cursor: pointer; } tr.satir:hover td { background: var(--panel-2); }
+tr.satir:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.konu { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-weight: 550; }
+.rozet { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.rozet.devret { color: var(--danger); background: var(--danger-bg); }
+.rozet.oto { color: var(--ok); background: var(--ok-bg); }
+.rozet.sessiz { color: var(--muted); background: var(--panel-2); }
+.rozet.guv { color: var(--warn); background: var(--warn-bg); margin-left: 4px; }
+.guven { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.guven .cubuk { width: 54px; height: 6px; }
+.guven .cubuk span { background: var(--accent); }
+.mesaj { max-width: 420px; }
+.kucuk { color: var(--muted); font-size: 12px; }
+tr.detay td { background: var(--panel-2); }
+.detay-izgara { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .detay-izgara { grid-template-columns: 1fr; } }
+.detay h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 6px; }
+.taslak { white-space: pre-wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 0; font: inherit; }
+.notlar { margin: 0; padding-left: 18px; } .notlar li { margin-bottom: 4px; }
+.notlar li.uyari { color: var(--danger); font-weight: 600; }
+.bos { text-align: center; color: var(--muted); padding: 28px; }
+@media (max-width: 720px) {
+  thead { display: none; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  tr.satir { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  tr.satir td { border: 0; padding: 3px 4px; }
+  td[data-b]::before { content: attr(data-b); display: inline-block; min-width: 72px; color: var(--muted); font-size: 12px; }
+  .mesaj { max-width: none; }
+  td .guven { display: inline-flex; }
+}
+footer { color: var(--muted); font-size: 12px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="kap">
+  <header>
+    <div>
+      <h1>Müşteri Mesajı Özeti</h1>
+      <div class="alt">Nureoderm · WhatsApp &amp; Instagram · <span id="zaman"></span></div>
+    </div>
+    <div class="alt">Kaynak: mesajlar.json · Sipariş verisi: DummyJSON</div>
+  </header>
+
+  <section class="kartlar" id="kartlar"></section>
+
+  <section class="izgara">
+    <div class="panel">
+      <h2>Konu dağılımı</h2>
+      <div class="dagilim" id="dagilim"></div>
+      <div class="lejant"><span><i></i>Otomatik taslak</span><span><i class="dv"></i>Devredilen</span></div>
+    </div>
+    <div class="panel">
+      <h2>Temsilci bekleyenler</h2>
+      <ul class="dikkat" id="dikkat"></ul>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="filtre" id="konuFiltre" role="group" aria-label="Konu filtresi"></div>
+    <div class="filtre">
+      <select id="durum" aria-label="Durum filtresi">
+        <option value="hepsi">Tüm durumlar</option>
+        <option value="devret">Yalnızca devredilenler</option>
+        <option value="oto">Yalnızca otomatik taslaklar</option>
+      </select>
+      <span class="bosluk"></span>
+      <input type="search" id="ara" placeholder="Mesaj, not veya taslakta ara…" aria-label="Ara">
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Kanal</th><th>Konu</th><th>Güven</th><th>Durum</th><th>Mesaj</th></tr></thead>
+      <tbody id="govde"></tbody>
+    </table>
+    <div class="kucuk" style="margin-top:10px">Satıra tıklayarak cevap taslağını ve temsilci notlarını açın.</div>
+  </section>
+  <footer>Otomatik üretildi · Güven skoru deterministik kural puanıdır, olasılık değildir.</footer>
+</div>
+
+<script id="veri" type="application/json">{"olusturulma": "2026-09-28T09:31:12+00:00", "konular": ["urun-sorusu", "fiyat", "siparis-durumu", "iade-sikayet", "istenmeyen-etki", "diger"], "istatistik": {"toplam": 15, "devredilen": 4, "otomatik": 10, "guvenlik_engeli": 1, "spam": 1, "ortalama_guven": 0.86, "konu_adet": {"urun-sorusu": 4, "fiyat": 2, "siparis-durumu": 5, "iade-sikayet": 1, "istenmeyen-etki": 1, "diger": 2}, "konu_devir": {"urun-sorusu": 0, "fiyat": 0, "siparis-durumu": 2, "iade-sikayet": 1, "istenmeyen-etki": 1, "diger": 0}, "diller": {"tr": 14, "en": 1}}, "talepler": [{"id": 1, "konu": "siparis-durumu", "devret": true, "cevap_taslagi": "Merhaba, 12 numaralı sipariş hesabınızla eşleşen kayıtlarımızda bulunamadı. Sipariş numaranızı kontrol ederek tekrar iletebilir misiniz? Dilerseniz müşteri temsilcimiz de size yardımcı olacaktır.", "not": "GÜVENLİK UYARISI: Sipariş sahibi (userId) ile müşteri (musteri_id) eşleşmiyor - Yetkisiz sorgulama engellendi (sorgulanan sipariş: #12, musteri_id=7)", "kanal": "whatsapp", "musteri_id": 7, "mesaj": "Merhaba, 12 numaralı siparişim nerede? Ne zaman kargoya verilir?", "dil": "tr", "guven": 0.94, "etiket": null, "ikincil_konular": [], "siparis_numaralari": [12], "eslesen_kurallar": ["siparis-durumu:siparisim", "siparis-durumu:konum", "siparis-durumu:teslim-zamani", "siparis-durumu:siparis-no"], "notlar": ["GÜVENLİK UYARISI: Sipariş sahibi (userId) ile müşteri (musteri_id) eşleşmiyor - Yetkisiz sorgulama engellendi (sorgulanan sipariş: #12, musteri_id=7)"], "islem_zamani": "2026-09-28T09:31:10.745+00:00"}, {"id": 2, "konu": "siparis-durumu", "devret": false, "cevap_taslagi": "Merhaba, 5 numaralı siparişiniz sistemimizde kayıtlı. Sipariş içeriği:\n• Samsung Galaxy Tab White × 4\n• Soft Drinks × 4\n• Powder Canister × 4\nToplam tutar: 1.467,88 USD\nKargo takip bilgisi hazır olduğunda size ayrıca iletilecektir.", "not": "Sipariş #5: sahiplik doğrulandı (userId = musteri_id). | API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli.", "kanal": "instagram", "musteri_id": 5, "mesaj": "5 numaralı siparişimin durumu nedir acaba?", "dil": "tr", "guven": 0.92, "etiket": null, "ikincil_konular": [], "siparis_numaralari": [5], "eslesen_kurallar": ["siparis-durumu:siparisim", "siparis-durumu:durum", "siparis-durumu:siparis-no"], "notlar": ["Sipariş #5: sahiplik doğrulandı (userId = musteri_id).", "API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli."], "islem_zamani": "2026-09-28T09:31:10.924+00:00"}, {"id": 3, "konu": "siparis-durumu", "devret": false, "cevap_taslagi": "Merhaba, 9999 numaralı sipariş hesabınızla eşleşen kayıtlarımızda bulunamadı. Sipariş numaranızı kontrol ederek tekrar iletebilir misiniz? Dilerseniz müşteri temsilcimiz de size yardımcı olacaktır.", "not": "Sipariş #9999 sistemde bulunamadı (API: not found).", "kanal": "whatsapp", "musteri_id": 22, "mesaj": "9999 numaralı siparişim hâlâ elime ulaşmadı, kontrol eder misiniz?", "dil": "tr", "guven": 0.92, "etiket": null, "ikincil_konular": [], "siparis_numaralari": [9999], "eslesen_kurallar": ["siparis-durumu:siparisim", "siparis-durumu:ulasmadi", "siparis-durumu:siparis-no"], "notlar": ["Sipariş #9999 sistemde bulunamadı (API: not found)."], "islem_zamani": "2026-09-28T09:31:11.096+00:00"}, {"id": 4, "konu": "istenmeyen-etki", "devret": true, "cevap_taslagi": "Merhaba, yaşadığınız durum adına üzgünüz. Mesajınızı uzman ekibimize ilettik; uzman temsilcimiz konuyu ivedilikle inceleyerek size en kısa sürede dönüş yapacaktır.", "not": "Hassas konu (istenmeyen-etki): uzman temsilciye devredildi; öneri/teşhis içeren yanıt üretilmedi. | İstenmeyen etki kaydı (kozmetovijilans) açılmalı.", "kanal": "instagram", "musteri_id": 14, "mesaj": "Dün aldığım serumu kullandım, yüzüm yandı ve kızardı. Ne yapmalıyım?", "dil": "tr", "guven": 0.9, "etiket": null, "ikincil_konular": ["urun-sorusu"], "siparis_numaralari": [], "eslesen_kurallar": ["istenmeyen-etki:yanma", "istenmeyen-etki:kizariklik", "urun-sorusu:urun-terimi"], "notlar": ["Hassas konu (istenmeyen-etki): uzman temsilciye devredildi; öneri/teşhis içeren yanıt üretilmedi.", "İstenmeyen etki kaydı (kozmetovijilans) açılmalı."], "islem_zamani": "2026-09-28T09:31:11.276+00:00"}, {"id": 5, "konu": "iade-sikayet", "devret": true, "cevap_taslagi": "Merhaba, yaşadığınız durum adına üzgünüz. Talebiniz ilgili ekibimize iletildi; uzman temsilcimiz konuyu ivedilikle inceleyerek size en kısa sürede dönüş yapacaktır.", "not": "Hassas konu (iade-sikayet): uzman temsilciye devredildi; öneri/teşhis içeren yanıt üretilmedi.", "kanal": "whatsapp", "musteri_id": 18, "mesaj": "Kutu ezik geldi, ürünü iade etmek istiyorum.", "dil": "tr", "guven": 0.9, "etiket": null, "ikincil_konular": [], "siparis_numaralari": [], "eslesen_kurallar": ["iade-sikayet:iade", "iade-sikayet:hasarli-urun"], "notlar": ["Hassas konu (iade-sikayet): uzman temsilciye devredildi; öneri/teşhis içeren yanıt üretilmedi."], "islem_zamani": "2026-09-28T09:31:11.276+00:00"}, {"id": 6, "konu": "siparis-durumu", "devret": false, "cevap_taslagi": "Hello, your order #3 has been verified. Items:\n• Fish Steak × 1\n• iPhone 13 Pro × 1\n• Realme X × 1\n• Man Short Sleeve Shirt × 5\n• Dior J'adore × 2\n• Party Glasses × 5\nTotal: 1,794.85 USD\nWe will send you the tracking details as soon as your shipment is ready.", "not": "Sipariş #3: sahiplik doğrulandı (userId = musteri_id). | API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli. | Dil: İngilizce — taslak İngilizce üretildi.", "kanal": "instagram", "musteri_id": 3, "mesaj": "Hi, where is my order #3? It has been a week.", "dil": "en", "guven": 0.92, "etiket": null, "ikincil_konular": [], "siparis_numaralari": [3], "eslesen_kurallar": ["siparis-durumu:konum", "siparis-durumu:en-siparis", "siparis-durumu:siparis-no"], "notlar": ["Sipariş #3: sahiplik doğrulandı (userId = musteri_id).", "API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli.", "Dil: İngilizce — taslak İngilizce üretildi."], "islem_zamani": "2026-09-28T09:31:11.276+00:00"}, {"id": 7, "konu": "diger", "devret": false, "cevap_taslagi": null, "not": "Spam/İlgisiz: yanıt üretilmedi, mesajdaki linke tıklanmamalı.", "kanal": "instagram", "musteri_id": 27, "mesaj": "Takipçi kasmak ister misiniz? 🔥 %100 organik takipçi: bit.ly/takip-artir", "dil": "tr", "guven": 0.88, "etiket": "Spam/İlgisiz", "ikincil_konular": [], "siparis_numaralari": [], "eslesen_kurallar": ["spam:link", "spam:takipci-begeni", "spam:abarti-vaat"], "notlar": ["Spam/İlgisiz: yanıt üretilmedi, mesajdaki linke tıklanmamalı."], "islem_zamani": "2026-09-28T09:31:11.459+00:00"}, {"id": 8, "konu": "siparis-durumu", "devret": true, "cevap_taslagi": "Merhaba, mesajınız için teşekkür ederiz. Talebiniz ilgili temsilcimize iletildi; en kısa sürede size dönüş yapılacaktır.", "not": "Otomatik devir — Çoklu Niyet: siparis-durumu + fiyat | Sipariş #4: sahiplik doğrulandı (userId = musteri_id).", "kanal": "whatsapp", "musteri_id": 4, "mesaj": "Güneş kreminin fiyatı ne kadar? Bir de 4 numaralı siparişim ne zaman gelir?", "dil": "tr", "guven": 0.56, "etiket": null, "ikincil_konular": ["fiyat", "urun-sorusu"], "siparis_numaralari": [4], "eslesen_kurallar": ["siparis-durumu:siparisim", "siparis-durumu:teslim-zamani", "fiyat:fiyat", "fiyat:ne-kadar", "urun-sorusu:urun-terimi", "siparis-durumu:siparis-no"], "notlar": ["Otomatik devir — Çoklu Niyet: siparis-durumu + fiyat", "Sipariş #4: sahiplik doğrulandı (userId = musteri_id)."], "islem_zamani": "2026-09-28T09:31:11.460+00:00"}, {"id": 9, "konu": "urun-sorusu", "devret": false, "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSorduğunuz ürünü kataloğumuzda birebir eşleştiremedik.\nCilt tipine uygunluk ve kullanım konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.", "not": "Ürün arama [serum, retinol] → uygun eşleşme yok | Doğrulanmamış iddia üretilmedi (cilt tipi/kullanım); yanıt ürün verisiyle teyit edilmeli.", "kanal": "whatsapp", "musteri_id": 1, "mesaj": "Retinol serumunuz var mı? Kuru ciltte kullanılır mı?", "dil": "tr", "guven": 0.91, "etiket": null, "ikincil_konular": [], "siparis_numaralari": [], "eslesen_kurallar": ["urun-sorusu:var-mi", "urun-sorusu:cilt-tipi", "urun-sorusu:kullanim", "urun-sorusu:urun-terimi"], "notlar": ["Ürün arama [serum, retinol] → uygun eşleşme yok", "Doğrulanmamış iddia üretilmedi (cilt tipi/kullanım); yanıt ürün verisiyle teyit edilmeli."], "islem_zamani": "2026-09-28T09:31:11.639+00:00"}, {"id": 10, "konu": "fiyat", "devret": false, "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nKataloğumuzda sorunuzla eşleşen ürünler:\n• Vaseline Men Body and Face Lotion — 9,99 USD\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.", "not": "Ürün arama [moisturizer, lotion, cream] → uygun eşleşme: Vaseline Men Body and Face Lotion (9.99) · alaka filtresiyle elenen: Red Lipstick, Ice Cream", "kanal": "instagram", "musteri_id": 2, "mesaj": "Nemlendirici krem ne kadar?", "dil": "tr", "guven": 0.71, "etiket": null, "ikincil_konular": ["urun-sorusu"], "siparis_numaralari": [], "eslesen_kurallar": ["fiyat:ne-kadar", "urun-sorusu:urun-terimi"], "notlar": ["Ürün arama [moisturizer, lotion, cream] → uygun eşleşme: Vaseline Men Body and Face Lotion (9.99) · alaka filtresiyle elenen: Red Lipstick, Ice Cream"], "islem_zamani": "2026-09-28T09:31:11.992+00:00"}, {"id": 11, "konu": "urun-sorusu", "devret": false, "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSorduğunuz ürünü kataloğumuzda birebir eşleştiremedik.\nCilt tipine uygunluk ve kullanım konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.", "not": "Ürün arama [serum, vitamin c] → uygun eşleşme yok | Doğrulanmamış iddia üretilmedi (cilt tipi/kullanım); yanıt ürün verisiyle teyit edilmeli.", "kanal": "whatsapp", "musteri_id": 8, "mesaj": "C vitamini serumu hangi cilt tipine uygundur?", "dil": "tr", "guven": 0.88, "etiket": null, "ikincil_konular": [], "siparis_numaralari": [], "eslesen_kurallar": ["urun-sorusu:cilt-tipi", "urun-sorusu:uygunluk", "urun-sorusu:urun-terimi"], "notlar": ["Ürün arama [serum, vitamin c] → uygun eşleşme yok", "Doğrulanmamış iddia üretilmedi (cilt tipi/kullanım); yanıt ürün verisiyle teyit edilmeli."], "islem_zamani": "2026-09-28T09:31:12.534+00:00"}, {"id": 12, "konu": "diger", "devret": false, "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSiparişiniz kargoya verildiğinde kargo firması ve takip numarası bilgisi tarafınıza iletilir.\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.", "not": "Anlaşmalı kargo firması adı temsilci tarafından eklenmeli.", "kanal": "instagram", "musteri_id": 6, "mesaj": "Siparişler hangi kargo firmasıyla gönderiliyor?", "dil": "tr", "guven": 0.83, "etiket": null, "ikincil_konular": [], "siparis_numaralari": [], "eslesen_kurallar": ["diger:kargo-firmasi"], "notlar": ["Anlaşmalı kargo firması adı temsilci tarafından eklenmeli."], "islem_zamani": "2026-09-28T09:31:12.715+00:00"}, {"id": 13, "konu": "urun-sorusu", "devret": false, "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSorduğunuz ürünü kataloğumuzda birebir eşleştiremedik.\nÜrün içeriği ve hacmi konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.", "not": "Ürün arama [toner] → uygun eşleşme yok | Doğrulanmamış iddia üretilmedi (içerik/hacim); yanıt ürün verisiyle teyit edilmeli.", "kanal": "whatsapp", "musteri_id": 9, "mesaj": "Tonik 200 ml mi? İçeriğinde alkol var mı?", "dil": "tr", "guven": 0.92, "etiket": null, "ikincil_konular": [], "siparis_numaralari": [], "eslesen_kurallar": ["urun-sorusu:var-mi", "urun-sorusu:icerik", "urun-sorusu:bilesen", "urun-sorusu:hacim", "urun-sorusu:urun-terimi"], "notlar": ["Ürün arama [toner] → uygun eşleşme yok", "Doğrulanmamış iddia üretilmedi (içerik/hacim); yanıt ürün verisiyle teyit edilmeli."], "islem_zamani": "2026-09-28T09:31:12.715+00:00"}, {"id": 14, "konu": "fiyat", "devret": false, "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nGüncel kampanya ve indirim kodlarımızı web sitemizin kampanyalar bölümünden takip edebilirsiniz.\nİlgilendiğiniz ürünün tam adını paylaşırsanız güncel bilgiyi hemen iletelim.\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.", "not": "Aktif indirim kodu / fiyat listesi temsilci tarafından teyit edilmeli.", "kanal": "instagram", "musteri_id": 10, "mesaj": "İndirim kodunuz var mı, fiyat listesi paylaşır mısınız?", "dil": "tr", "guven": 0.78, "etiket": null, "ikincil_konular": ["urun-sorusu"], "siparis_numaralari": [], "eslesen_kurallar": ["fiyat:fiyat", "fiyat:indirim", "urun-sorusu:var-mi"], "notlar": ["Aktif indirim kodu / fiyat listesi temsilci tarafından teyit edilmeli."], "islem_zamani": "2026-09-28T09:31:12.897+00:00"}, {"id": 15, "konu": "urun-sorusu", "devret": false, "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nHayvan deneyi politikası konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.", "not": "Doğrulanmamış iddia üretilmedi (hayvan testi); yanıt ürün verisiyle teyit edilmeli.", "kanal": "whatsapp", "musteri_id": 11, "mesaj": "Merhaba, ürünleriniz hayvanlar üzerinde test ediliyor mu?", "dil": "tr", "guven": 0.86, "etiket": null, "ikincil_konular": [], "siparis_numaralari": [], "eslesen_kurallar": ["urun-sorusu:hayvan-testi", "urun-sorusu:urun-geneli"], "notlar": ["Doğrulanmamış iddia üretilmedi (hayvan testi); yanıt ürün verisiyle teyit edilmeli."], "islem_zamani": "2026-09-28T09:31:12.898+00:00"}]}</script>
+<script>
+(function () {
+  "use strict";
+  var V = JSON.parse(document.getElementById("veri").textContent);
+  var T = V.talepler, S = V.istatistik;
+  var durum = { konu: "hepsi", filtre: "hepsi", q: "" };
+  var acik = {};
+
+  function el(etiket, ozellik, cocuklar) {
+    var d = document.createElement(etiket);
+    if (ozellik) for (var k in ozellik) {
+      if (k === "text") d.textContent = ozellik[k];
+      else if (k === "style") d.style.cssText = ozellik[k];
+      else d.setAttribute(k, ozellik[k]);
+    }
+    (cocuklar || []).forEach(function (c) { if (c) d.appendChild(c); });
+    return d;
+  }
+  function renk(konu) { return "var(--k-" + konu + ")"; }
+  function nokta(konu) { return el("span", { "class": "nokta", style: "background:" + renk(konu) }); }
+
+  var z = new Date(V.olusturulma);
+  document.getElementById("zaman").textContent = isNaN(z) ? V.olusturulma : z.toLocaleString("tr-TR");
+
+  // KPI kartları
+  var yuzde = S.toplam ? Math.round(100 * S.devredilen / S.toplam) : 0;
+  [
+    ["Toplam mesaj", S.toplam, S.toplam + " kayıt işlendi", ""],
+    ["Devredilen", S.devredilen, "%" + yuzde + " temsilciye", "kirmizi"],
+    ["Otomatik taslak", S.otomatik, "onaya hazır", "yesil"],
+    ["Güvenlik engeli", S.guvenlik_engeli, "yetkisiz sipariş sorgusu", "sari"],
+    ["Ort. güven", S.ortalama_guven.toFixed(2), "spam: " + S.spam, ""]
+  ].forEach(function (k) {
+    document.getElementById("kartlar").appendChild(el("div", { "class": "kart " + k[3] }, [
+      el("div", { "class": "etiket", text: k[0] }), el("div", { "class": "deger", text: String(k[1]) }),
+      el("div", { "class": "ek", text: k[2] })
+    ]));
+  });
+
+  // Dağılım
+  var enCok = Math.max.apply(null, V.konular.map(function (k) { return S.konu_adet[k]; })) || 1;
+  V.konular.forEach(function (k) {
+    var adet = S.konu_adet[k], devir = S.konu_devir[k];
+    var cubuk = el("div", { "class": "cubuk", role: "img", "aria-label": k + ": " + adet + " mesaj, " + devir + " devredilen" }, [
+      el("span", { style: "width:" + (100 * (adet - devir) / enCok) + "%;background:" + renk(k) }),
+      el("span", { "class": "dv", style: "width:" + (100 * devir / enCok) + "%;background-color:" + renk(k) })
+    ]);
+    document.getElementById("dagilim").appendChild(el("div", { "class": "dsatir" }, [
+      el("span", { "class": "konu" }, [nokta(k), el("span", { text: k })]), cubuk,
+      el("span", { "class": "sayi", text: adet + (devir ? " · " + devir + "↗" : "") })
+    ]));
+  });
+
+  // Temsilci bekleyenler
+  var dikkat = document.getElementById("dikkat");
+  T.filter(function (t) { return t.devret; }).forEach(function (t) {
+    dikkat.appendChild(el("li", null, [el("b", { text: "#" + t.id }),
+      el("div", null, [el("div", { "class": "konu" }, [nokta(t.konu), el("span", { text: t.konu })]),
+                       el("span", { text: t.notlar[0] || "" })])]));
+  });
+  if (!dikkat.children.length) dikkat.appendChild(el("li", { text: "Devredilen mesaj yok." }));
+
+  // Konu filtre çipleri
+  var konuFiltre = document.getElementById("konuFiltre");
+  ["hepsi"].concat(V.konular).forEach(function (k) {
+    var n = k === "hepsi" ? T.length : S.konu_adet[k];
+    var b = el("button", { type: "button", "class": "cip", "data-konu": k, "aria-pressed": String(k === "hepsi") },
+      [k === "hepsi" ? null : nokta(k), el("span", { text: k === "hepsi" ? "Tümü" : k }), el("span", { "class": "n", text: String(n) })]);
+    b.addEventListener("click", function () {
+      durum.konu = k;
+      konuFiltre.querySelectorAll(".cip").forEach(function (c) { c.setAttribute("aria-pressed", String(c === b)); });
+      ciz();
+    });
+    konuFiltre.appendChild(b);
+  });
+  document.getElementById("durum").addEventListener("change", function (e) { durum.filtre = e.target.value; ciz(); });
+  document.getElementById("ara").addEventListener("input", function (e) { durum.q = e.target.value.toLocaleLowerCase("tr"); ciz(); });
+
+  function durumRozeti(t) {
+    if (t.devret) return el("span", { "class": "rozet devret", text: "Devret" });
+    if (t.cevap_taslagi) return el("span", { "class": "rozet oto", text: "Otomatik" });
+    return el("span", { "class": "rozet sessiz", text: t.etiket || "Yanıtsız" });
+  }
+
+  function detaySatiri(t) {
+    var notlar = el("ul", { "class": "notlar" }, t.notlar.map(function (n) {
+      return el("li", { "class": n.indexOf("GÜVENLİK UYARISI") === 0 ? "uyari" : "", text: n });
+    }));
+    var ek = "Dil: " + t.dil + " · musteri_id: " + t.musteri_id +
+      (t.siparis_numaralari.length ? " · sipariş no: " + t.siparis_numaralari.join(", ") : "") +
+      " · işlem: " + t.islem_zamani;
+    return el("tr", { "class": "detay" }, [el("td", { colspan: "6" }, [el("div", { "class": "detay-izgara" }, [
+      el("div", null, [el("h3", { text: "Cevap taslağı" }),
+        t.cevap_taslagi ? el("pre", { "class": "taslak", text: t.cevap_taslagi })
+                        : el("div", { "class": "kucuk", text: "Taslak üretilmedi." })]),
+      el("div", null, [el("h3", { text: "Temsilci notları" }), notlar,
+        el("div", { "class": "kucuk", style: "margin-top:8px", text: ek })])
+    ])])]);
+  }
+
+  function ciz() {
+    var govde = document.getElementById("govde");
+    govde.textContent = "";
+    var liste = T.filter(function (t) {
+      if (durum.konu !== "hepsi" && t.konu !== durum.konu) return false;
+      if (durum.filtre === "devret" && !t.devret) return false;
+      if (durum.filtre === "oto" && (t.devret || !t.cevap_taslagi)) return false;
+      if (durum.q) {
+        var hay = [t.mesaj, t.not, t.cevap_taslagi || "", t.konu].join(" ").toLocaleLowerCase("tr");
+        if (hay.indexOf(durum.q) < 0) return false;
+      }
+      return true;
+    });
+    liste.forEach(function (t) {
+      var guven = el("div", { "class": "guven" }, [el("span", { text: t.guven.toFixed(2) }),
+        el("div", { "class": "cubuk" }, [el("span", { style: "width:" + (100 * t.guven) + "%" })])]);
+      var durumHucre = el("td", { "data-b": "Durum" }, [durumRozeti(t)]);
+      if (t.notlar.some(function (n) { return n.indexOf("GÜVENLİK UYARISI") === 0; }))
+        durumHucre.appendChild(el("span", { "class": "rozet guv", text: "Güvenlik" }));
+      var satir = el("tr", { "class": "satir", tabindex: "0", "aria-expanded": String(!!acik[t.id]) }, [
+        el("td", { "data-b": "#", text: String(t.id) }),
+        el("td", { "data-b": "Kanal", text: t.kanal }),
+        el("td", { "data-b": "Konu" }, [el("span", { "class": "konu" }, [nokta(t.konu), el("span", { text: t.konu })])]),
+        el("td", { "data-b": "Güven" }, [guven]),
+        durumHucre,
+        el("td", { "data-b": "Mesaj", "class": "mesaj", text: t.mesaj })
+      ]);
+      function degistir() { acik[t.id] = !acik[t.id]; ciz(); }
+      satir.addEventListener("click", degistir);
+      satir.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); degistir(); } });
+      govde.appendChild(satir);
+      if (acik[t.id]) govde.appendChild(detaySatiri(t));
+    });
+    if (!liste.length) govde.appendChild(el("tr", null, [el("td", { colspan: "6", "class": "bos", text: "Filtreye uyan mesaj yok." })]));
+  }
+  ciz();
+})();
+</script>
+</body>
+</html>

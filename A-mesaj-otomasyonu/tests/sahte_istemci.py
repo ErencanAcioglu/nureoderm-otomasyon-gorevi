@@ -1,6 +1,7 @@
 """Testler için ağsız sepet istemcisi. Veriler DummyJSON'un gerçek yanıtlarından alınmıştır."""
 
 from otomasyon.api import SepetSorgusu, SorguDurumu, sepet_yorumla
+from otomasyon.urun_arama import Urun
 
 GERCEK_SEPETLER = {
     3: {"id": 3, "userId": 3, "total": 1794.85,
@@ -29,3 +30,25 @@ class SahteIstemci:
             return SepetSorgusu(sepet_id, SorguDurumu.HATA, hata="HTTP 503")
         veri = self.sepetler.get(sepet_id, {"message": f"Cart with id '{sepet_id}' not found"})
         return sepet_yorumla(sepet_id, veri)
+
+
+# /products/search?q=... gerçek yanıtları (2026-09-28); listede olmayan sorgular 0 sonuç döner.
+GERCEK_ARAMALAR = {
+    "lotion": [Urun("Vaseline Men Body and Face Lotion", 9.99, "skin-care")],
+    "cream": [Urun("Red Lipstick", 12.99, "beauty"), Urun("Ice Cream", 5.49, "groceries")],
+    "vitamin": [Urun("Juice", 3.99, "groceries")],
+    "lipstick": [Urun("Red Lipstick", 12.99, "beauty")],
+}
+
+
+class SahteUrunIstemcisi:
+    def __init__(self, aramalar=None, hata=False):
+        self.aramalar = GERCEK_ARAMALAR if aramalar is None else aramalar
+        self.hata = hata
+        self.sorgular = []
+
+    def ara(self, sorgu):
+        self.sorgular.append(sorgu)
+        if self.hata:
+            return [], "HTTP 503"
+        return list(self.aramalar.get(sorgu, [])), None

@@ -1,0 +1,107 @@
+[
+  {
+    "id": 1,
+    "konu": "siparis-durumu",
+    "devret": true,
+    "cevap_taslagi": "Merhaba, 12 numaralı sipariş hesabınızla eşleşen kayıtlarımızda bulunamadı. Sipariş numaranızı kontrol ederek tekrar iletebilir misiniz? Dilerseniz müşteri temsilcimiz de size yardımcı olacaktır.",
+    "not": "GÜVENLİK UYARISI: Sipariş sahibi (userId) ile müşteri (musteri_id) eşleşmiyor - Yetkisiz sorgulama engellendi (sorgulanan sipariş: #12, musteri_id=7)"
+  },
+  {
+    "id": 2,
+    "konu": "siparis-durumu",
+    "devret": false,
+    "cevap_taslagi": "Merhaba, 5 numaralı siparişiniz sistemimizde kayıtlı. Sipariş içeriği:\n• Samsung Galaxy Tab White × 4\n• Soft Drinks × 4\n• Powder Canister × 4\nToplam tutar: 1.467,88 USD\nKargo takip bilgisi hazır olduğunda size ayrıca iletilecektir.",
+    "not": "Sipariş #5: sahiplik doğrulandı (userId = musteri_id). | API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli."
+  },
+  {
+    "id": 3,
+    "konu": "siparis-durumu",
+    "devret": false,
+    "cevap_taslagi": "Merhaba, 9999 numaralı sipariş hesabınızla eşleşen kayıtlarımızda bulunamadı. Sipariş numaranızı kontrol ederek tekrar iletebilir misiniz? Dilerseniz müşteri temsilcimiz de size yardımcı olacaktır.",
+    "not": "Sipariş #9999 sistemde bulunamadı (API: not found)."
+  },
+  {
+    "id": 4,
+    "konu": "istenmeyen-etki",
+    "devret": true,
+    "cevap_taslagi": "Merhaba, yaşadığınız durum adına üzgünüz. Mesajınızı uzman ekibimize ilettik; uzman temsilcimiz konuyu ivedilikle inceleyerek size en kısa sürede dönüş yapacaktır.",
+    "not": "Hassas konu (istenmeyen-etki): uzman temsilciye devredildi; öneri/teşhis içeren yanıt üretilmedi. | İstenmeyen etki kaydı (kozmetovijilans) açılmalı."
+  },
+  {
+    "id": 5,
+    "konu": "iade-sikayet",
+    "devret": true,
+    "cevap_taslagi": "Merhaba, yaşadığınız durum adına üzgünüz. Talebiniz ilgili ekibimize iletildi; uzman temsilcimiz konuyu ivedilikle inceleyerek size en kısa sürede dönüş yapacaktır.",
+    "not": "Hassas konu (iade-sikayet): uzman temsilciye devredildi; öneri/teşhis içeren yanıt üretilmedi."
+  },
+  {
+    "id": 6,
+    "konu": "siparis-durumu",
+    "devret": false,
+    "cevap_taslagi": "Hello, your order #3 has been verified. Items:\n• Fish Steak × 1\n• iPhone 13 Pro × 1\n• Realme X × 1\n• Man Short Sleeve Shirt × 5\n• Dior J'adore × 2\n• Party Glasses × 5\nTotal: 1,794.85 USD\nWe will send you the tracking details as soon as your shipment is ready.",
+    "not": "Sipariş #3: sahiplik doğrulandı (userId = musteri_id). | API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli. | Dil: İngilizce — taslak İngilizce üretildi."
+  },
+  {
+    "id": 7,
+    "konu": "diger",
+    "devret": false,
+    "cevap_taslagi": null,
+    "not": "Spam/İlgisiz: yanıt üretilmedi, mesajdaki linke tıklanmamalı."
+  },
+  {
+    "id": 8,
+    "konu": "siparis-durumu",
+    "devret": true,
+    "cevap_taslagi": "Merhaba, mesajınız için teşekkür ederiz. Talebiniz ilgili temsilcimize iletildi; en kısa sürede size dönüş yapılacaktır.",
+    "not": "Otomatik devir — Çoklu Niyet: siparis-durumu + fiyat | Sipariş #4: sahiplik doğrulandı (userId = musteri_id)."
+  },
+  {
+    "id": 9,
+    "konu": "urun-sorusu",
+    "devret": false,
+    "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSorduğunuz ürünü kataloğumuzda birebir eşleştiremedik.\nCilt tipine uygunluk ve kullanım konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+    "not": "Ürün arama [serum, retinol] → uygun eşleşme yok | Doğrulanmamış iddia üretilmedi (cilt tipi/kullanım); yanıt ürün verisiyle teyit edilmeli."
+  },
+  {
+    "id": 10,
+    "konu": "fiyat",
+    "devret": false,
+    "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nKataloğumuzda sorunuzla eşleşen ürünler:\n• Vaseline Men Body and Face Lotion — 9,99 USD\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+    "not": "Ürün arama [moisturizer, lotion, cream] → uygun eşleşme: Vaseline Men Body and Face Lotion (9.99) · alaka filtresiyle elenen: Red Lipstick, Ice Cream"
+  },
+  {
+    "id": 11,
+    "konu": "urun-sorusu",
+    "devret": false,
+    "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSorduğunuz ürünü kataloğumuzda birebir eşleştiremedik.\nCilt tipine uygunluk ve kullanım konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+    "not": "Ürün arama [serum, vitamin c] → uygun eşleşme yok | Doğrulanmamış iddia üretilmedi (cilt tipi/kullanım); yanıt ürün verisiyle teyit edilmeli."
+  },
+  {
+    "id": 12,
+    "konu": "diger",
+    "devret": false,
+    "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSiparişiniz kargoya verildiğinde kargo firması ve takip numarası bilgisi tarafınıza iletilir.\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+    "not": "Anlaşmalı kargo firması adı temsilci tarafından eklenmeli."
+  },
+  {
+    "id": 13,
+    "konu": "urun-sorusu",
+    "devret": false,
+    "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSorduğunuz ürünü kataloğumuzda birebir eşleştiremedik.\nÜrün içeriği ve hacmi konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+    "not": "Ürün arama [toner] → uygun eşleşme yok | Doğrulanmamış iddia üretilmedi (içerik/hacim); yanıt ürün verisiyle teyit edilmeli."
+  },
+  {
+    "id": 14,
+    "konu": "fiyat",
+    "devret": false,
+    "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nGüncel kampanya ve indirim kodlarımızı web sitemizin kampanyalar bölümünden takip edebilirsiniz.\nİlgilendiğiniz ürünün tam adını paylaşırsanız güncel bilgiyi hemen iletelim.\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+    "not": "Aktif indirim kodu / fiyat listesi temsilci tarafından teyit edilmeli."
+  },
+  {
+    "id": 15,
+    "konu": "urun-sorusu",
+    "devret": false,
+    "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nHayvan deneyi politikası konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+    "not": "Doğrulanmamış iddia üretilmedi (hayvan testi); yanıt ürün verisiyle teyit edilmeli."
+  }
+]

@@ -1,0 +1,412 @@
+{
+  "meta": {
+    "olusturulma": "2026-09-28T09:31:12+00:00",
+    "kaynak": "mesajlar.json",
+    "api": "https://dummyjson.com",
+    "toplam": 15,
+    "devredilen": 4,
+    "konu_dagilimi": {
+      "urun-sorusu": 4,
+      "fiyat": 2,
+      "siparis-durumu": 5,
+      "iade-sikayet": 1,
+      "istenmeyen-etki": 1,
+      "diger": 2
+    },
+    "diller": {
+      "tr": 14,
+      "en": 1
+    }
+  },
+  "talepler": [
+    {
+      "id": 1,
+      "konu": "siparis-durumu",
+      "devret": true,
+      "cevap_taslagi": "Merhaba, 12 numaralı sipariş hesabınızla eşleşen kayıtlarımızda bulunamadı. Sipariş numaranızı kontrol ederek tekrar iletebilir misiniz? Dilerseniz müşteri temsilcimiz de size yardımcı olacaktır.",
+      "not": "GÜVENLİK UYARISI: Sipariş sahibi (userId) ile müşteri (musteri_id) eşleşmiyor - Yetkisiz sorgulama engellendi (sorgulanan sipariş: #12, musteri_id=7)",
+      "kanal": "whatsapp",
+      "musteri_id": 7,
+      "mesaj": "Merhaba, 12 numaralı siparişim nerede? Ne zaman kargoya verilir?",
+      "dil": "tr",
+      "guven": 0.94,
+      "etiket": null,
+      "ikincil_konular": [],
+      "siparis_numaralari": [
+        12
+      ],
+      "eslesen_kurallar": [
+        "siparis-durumu:siparisim",
+        "siparis-durumu:konum",
+        "siparis-durumu:teslim-zamani",
+        "siparis-durumu:siparis-no"
+      ],
+      "notlar": [
+        "GÜVENLİK UYARISI: Sipariş sahibi (userId) ile müşteri (musteri_id) eşleşmiyor - Yetkisiz sorgulama engellendi (sorgulanan sipariş: #12, musteri_id=7)"
+      ],
+      "islem_zamani": "2026-09-28T09:31:10.745+00:00"
+    },
+    {
+      "id": 2,
+      "konu": "siparis-durumu",
+      "devret": false,
+      "cevap_taslagi": "Merhaba, 5 numaralı siparişiniz sistemimizde kayıtlı. Sipariş içeriği:\n• Samsung Galaxy Tab White × 4\n• Soft Drinks × 4\n• Powder Canister × 4\nToplam tutar: 1.467,88 USD\nKargo takip bilgisi hazır olduğunda size ayrıca iletilecektir.",
+      "not": "Sipariş #5: sahiplik doğrulandı (userId = musteri_id). | API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli.",
+      "kanal": "instagram",
+      "musteri_id": 5,
+      "mesaj": "5 numaralı siparişimin durumu nedir acaba?",
+      "dil": "tr",
+      "guven": 0.92,
+      "etiket": null,
+      "ikincil_konular": [],
+      "siparis_numaralari": [
+        5
+      ],
+      "eslesen_kurallar": [
+        "siparis-durumu:siparisim",
+        "siparis-durumu:durum",
+        "siparis-durumu:siparis-no"
+      ],
+      "notlar": [
+        "Sipariş #5: sahiplik doğrulandı (userId = musteri_id).",
+        "API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli."
+      ],
+      "islem_zamani": "2026-09-28T09:31:10.924+00:00"
+    },
+    {
+      "id": 3,
+      "konu": "siparis-durumu",
+      "devret": false,
+      "cevap_taslagi": "Merhaba, 9999 numaralı sipariş hesabınızla eşleşen kayıtlarımızda bulunamadı. Sipariş numaranızı kontrol ederek tekrar iletebilir misiniz? Dilerseniz müşteri temsilcimiz de size yardımcı olacaktır.",
+      "not": "Sipariş #9999 sistemde bulunamadı (API: not found).",
+      "kanal": "whatsapp",
+      "musteri_id": 22,
+      "mesaj": "9999 numaralı siparişim hâlâ elime ulaşmadı, kontrol eder misiniz?",
+      "dil": "tr",
+      "guven": 0.92,
+      "etiket": null,
+      "ikincil_konular": [],
+      "siparis_numaralari": [
+        9999
+      ],
+      "eslesen_kurallar": [
+        "siparis-durumu:siparisim",
+        "siparis-durumu:ulasmadi",
+        "siparis-durumu:siparis-no"
+      ],
+      "notlar": [
+        "Sipariş #9999 sistemde bulunamadı (API: not found)."
+      ],
+      "islem_zamani": "2026-09-28T09:31:11.096+00:00"
+    },
+    {
+      "id": 4,
+      "konu": "istenmeyen-etki",
+      "devret": true,
+      "cevap_taslagi": "Merhaba, yaşadığınız durum adına üzgünüz. Mesajınızı uzman ekibimize ilettik; uzman temsilcimiz konuyu ivedilikle inceleyerek size en kısa sürede dönüş yapacaktır.",
+      "not": "Hassas konu (istenmeyen-etki): uzman temsilciye devredildi; öneri/teşhis içeren yanıt üretilmedi. | İstenmeyen etki kaydı (kozmetovijilans) açılmalı.",
+      "kanal": "instagram",
+      "musteri_id": 14,
+      "mesaj": "Dün aldığım serumu kullandım, yüzüm yandı ve kızardı. Ne yapmalıyım?",
+      "dil": "tr",
+      "guven": 0.9,
+      "etiket": null,
+      "ikincil_konular": [
+        "urun-sorusu"
+      ],
+      "siparis_numaralari": [],
+      "eslesen_kurallar": [
+        "istenmeyen-etki:yanma",
+        "istenmeyen-etki:kizariklik",
+        "urun-sorusu:urun-terimi"
+      ],
+      "notlar": [
+        "Hassas konu (istenmeyen-etki): uzman temsilciye devredildi; öneri/teşhis içeren yanıt üretilmedi.",
+        "İstenmeyen etki kaydı (kozmetovijilans) açılmalı."
+      ],
+      "islem_zamani": "2026-09-28T09:31:11.276+00:00"
+    },
+    {
+      "id": 5,
+      "konu": "iade-sikayet",
+      "devret": true,
+      "cevap_taslagi": "Merhaba, yaşadığınız durum adına üzgünüz. Talebiniz ilgili ekibimize iletildi; uzman temsilcimiz konuyu ivedilikle inceleyerek size en kısa sürede dönüş yapacaktır.",
+      "not": "Hassas konu (iade-sikayet): uzman temsilciye devredildi; öneri/teşhis içeren yanıt üretilmedi.",
+      "kanal": "whatsapp",
+      "musteri_id": 18,
+      "mesaj": "Kutu ezik geldi, ürünü iade etmek istiyorum.",
+      "dil": "tr",
+      "guven": 0.9,
+      "etiket": null,
+      "ikincil_konular": [],
+      "siparis_numaralari": [],
+      "eslesen_kurallar": [
+        "iade-sikayet:iade",
+        "iade-sikayet:hasarli-urun"
+      ],
+      "notlar": [
+        "Hassas konu (iade-sikayet): uzman temsilciye devredildi; öneri/teşhis içeren yanıt üretilmedi."
+      ],
+      "islem_zamani": "2026-09-28T09:31:11.276+00:00"
+    },
+    {
+      "id": 6,
+      "konu": "siparis-durumu",
+      "devret": false,
+      "cevap_taslagi": "Hello, your order #3 has been verified. Items:\n• Fish Steak × 1\n• iPhone 13 Pro × 1\n• Realme X × 1\n• Man Short Sleeve Shirt × 5\n• Dior J'adore × 2\n• Party Glasses × 5\nTotal: 1,794.85 USD\nWe will send you the tracking details as soon as your shipment is ready.",
+      "not": "Sipariş #3: sahiplik doğrulandı (userId = musteri_id). | API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli. | Dil: İngilizce — taslak İngilizce üretildi.",
+      "kanal": "instagram",
+      "musteri_id": 3,
+      "mesaj": "Hi, where is my order #3? It has been a week.",
+      "dil": "en",
+      "guven": 0.92,
+      "etiket": null,
+      "ikincil_konular": [],
+      "siparis_numaralari": [
+        3
+      ],
+      "eslesen_kurallar": [
+        "siparis-durumu:konum",
+        "siparis-durumu:en-siparis",
+        "siparis-durumu:siparis-no"
+      ],
+      "notlar": [
+        "Sipariş #3: sahiplik doğrulandı (userId = musteri_id).",
+        "API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli.",
+        "Dil: İngilizce — taslak İngilizce üretildi."
+      ],
+      "islem_zamani": "2026-09-28T09:31:11.276+00:00"
+    },
+    {
+      "id": 7,
+      "konu": "diger",
+      "devret": false,
+      "cevap_taslagi": null,
+      "not": "Spam/İlgisiz: yanıt üretilmedi, mesajdaki linke tıklanmamalı.",
+      "kanal": "instagram",
+      "musteri_id": 27,
+      "mesaj": "Takipçi kasmak ister misiniz? 🔥 %100 organik takipçi: bit.ly/takip-artir",
+      "dil": "tr",
+      "guven": 0.88,
+      "etiket": "Spam/İlgisiz",
+      "ikincil_konular": [],
+      "siparis_numaralari": [],
+      "eslesen_kurallar": [
+        "spam:link",
+        "spam:takipci-begeni",
+        "spam:abarti-vaat"
+      ],
+      "notlar": [
+        "Spam/İlgisiz: yanıt üretilmedi, mesajdaki linke tıklanmamalı."
+      ],
+      "islem_zamani": "2026-09-28T09:31:11.459+00:00"
+    },
+    {
+      "id": 8,
+      "konu": "siparis-durumu",
+      "devret": true,
+      "cevap_taslagi": "Merhaba, mesajınız için teşekkür ederiz. Talebiniz ilgili temsilcimize iletildi; en kısa sürede size dönüş yapılacaktır.",
+      "not": "Otomatik devir — Çoklu Niyet: siparis-durumu + fiyat | Sipariş #4: sahiplik doğrulandı (userId = musteri_id).",
+      "kanal": "whatsapp",
+      "musteri_id": 4,
+      "mesaj": "Güneş kreminin fiyatı ne kadar? Bir de 4 numaralı siparişim ne zaman gelir?",
+      "dil": "tr",
+      "guven": 0.56,
+      "etiket": null,
+      "ikincil_konular": [
+        "fiyat",
+        "urun-sorusu"
+      ],
+      "siparis_numaralari": [
+        4
+      ],
+      "eslesen_kurallar": [
+        "siparis-durumu:siparisim",
+        "siparis-durumu:teslim-zamani",
+        "fiyat:fiyat",
+        "fiyat:ne-kadar",
+        "urun-sorusu:urun-terimi",
+        "siparis-durumu:siparis-no"
+      ],
+      "notlar": [
+        "Otomatik devir — Çoklu Niyet: siparis-durumu + fiyat",
+        "Sipariş #4: sahiplik doğrulandı (userId = musteri_id)."
+      ],
+      "islem_zamani": "2026-09-28T09:31:11.460+00:00"
+    },
+    {
+      "id": 9,
+      "konu": "urun-sorusu",
+      "devret": false,
+      "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSorduğunuz ürünü kataloğumuzda birebir eşleştiremedik.\nCilt tipine uygunluk ve kullanım konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+      "not": "Ürün arama [serum, retinol] → uygun eşleşme yok | Doğrulanmamış iddia üretilmedi (cilt tipi/kullanım); yanıt ürün verisiyle teyit edilmeli.",
+      "kanal": "whatsapp",
+      "musteri_id": 1,
+      "mesaj": "Retinol serumunuz var mı? Kuru ciltte kullanılır mı?",
+      "dil": "tr",
+      "guven": 0.91,
+      "etiket": null,
+      "ikincil_konular": [],
+      "siparis_numaralari": [],
+      "eslesen_kurallar": [
+        "urun-sorusu:var-mi",
+        "urun-sorusu:cilt-tipi",
+        "urun-sorusu:kullanim",
+        "urun-sorusu:urun-terimi"
+      ],
+      "notlar": [
+        "Ürün arama [serum, retinol] → uygun eşleşme yok",
+        "Doğrulanmamış iddia üretilmedi (cilt tipi/kullanım); yanıt ürün verisiyle teyit edilmeli."
+      ],
+      "islem_zamani": "2026-09-28T09:31:11.639+00:00"
+    },
+    {
+      "id": 10,
+      "konu": "fiyat",
+      "devret": false,
+      "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nKataloğumuzda sorunuzla eşleşen ürünler:\n• Vaseline Men Body and Face Lotion — 9,99 USD\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+      "not": "Ürün arama [moisturizer, lotion, cream] → uygun eşleşme: Vaseline Men Body and Face Lotion (9.99) · alaka filtresiyle elenen: Red Lipstick, Ice Cream",
+      "kanal": "instagram",
+      "musteri_id": 2,
+      "mesaj": "Nemlendirici krem ne kadar?",
+      "dil": "tr",
+      "guven": 0.71,
+      "etiket": null,
+      "ikincil_konular": [
+        "urun-sorusu"
+      ],
+      "siparis_numaralari": [],
+      "eslesen_kurallar": [
+        "fiyat:ne-kadar",
+        "urun-sorusu:urun-terimi"
+      ],
+      "notlar": [
+        "Ürün arama [moisturizer, lotion, cream] → uygun eşleşme: Vaseline Men Body and Face Lotion (9.99) · alaka filtresiyle elenen: Red Lipstick, Ice Cream"
+      ],
+      "islem_zamani": "2026-09-28T09:31:11.992+00:00"
+    },
+    {
+      "id": 11,
+      "konu": "urun-sorusu",
+      "devret": false,
+      "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSorduğunuz ürünü kataloğumuzda birebir eşleştiremedik.\nCilt tipine uygunluk ve kullanım konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+      "not": "Ürün arama [serum, vitamin c] → uygun eşleşme yok | Doğrulanmamış iddia üretilmedi (cilt tipi/kullanım); yanıt ürün verisiyle teyit edilmeli.",
+      "kanal": "whatsapp",
+      "musteri_id": 8,
+      "mesaj": "C vitamini serumu hangi cilt tipine uygundur?",
+      "dil": "tr",
+      "guven": 0.88,
+      "etiket": null,
+      "ikincil_konular": [],
+      "siparis_numaralari": [],
+      "eslesen_kurallar": [
+        "urun-sorusu:cilt-tipi",
+        "urun-sorusu:uygunluk",
+        "urun-sorusu:urun-terimi"
+      ],
+      "notlar": [
+        "Ürün arama [serum, vitamin c] → uygun eşleşme yok",
+        "Doğrulanmamış iddia üretilmedi (cilt tipi/kullanım); yanıt ürün verisiyle teyit edilmeli."
+      ],
+      "islem_zamani": "2026-09-28T09:31:12.534+00:00"
+    },
+    {
+      "id": 12,
+      "konu": "diger",
+      "devret": false,
+      "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSiparişiniz kargoya verildiğinde kargo firması ve takip numarası bilgisi tarafınıza iletilir.\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+      "not": "Anlaşmalı kargo firması adı temsilci tarafından eklenmeli.",
+      "kanal": "instagram",
+      "musteri_id": 6,
+      "mesaj": "Siparişler hangi kargo firmasıyla gönderiliyor?",
+      "dil": "tr",
+      "guven": 0.83,
+      "etiket": null,
+      "ikincil_konular": [],
+      "siparis_numaralari": [],
+      "eslesen_kurallar": [
+        "diger:kargo-firmasi"
+      ],
+      "notlar": [
+        "Anlaşmalı kargo firması adı temsilci tarafından eklenmeli."
+      ],
+      "islem_zamani": "2026-09-28T09:31:12.715+00:00"
+    },
+    {
+      "id": 13,
+      "konu": "urun-sorusu",
+      "devret": false,
+      "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nSorduğunuz ürünü kataloğumuzda birebir eşleştiremedik.\nÜrün içeriği ve hacmi konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+      "not": "Ürün arama [toner] → uygun eşleşme yok | Doğrulanmamış iddia üretilmedi (içerik/hacim); yanıt ürün verisiyle teyit edilmeli.",
+      "kanal": "whatsapp",
+      "musteri_id": 9,
+      "mesaj": "Tonik 200 ml mi? İçeriğinde alkol var mı?",
+      "dil": "tr",
+      "guven": 0.92,
+      "etiket": null,
+      "ikincil_konular": [],
+      "siparis_numaralari": [],
+      "eslesen_kurallar": [
+        "urun-sorusu:var-mi",
+        "urun-sorusu:icerik",
+        "urun-sorusu:bilesen",
+        "urun-sorusu:hacim",
+        "urun-sorusu:urun-terimi"
+      ],
+      "notlar": [
+        "Ürün arama [toner] → uygun eşleşme yok",
+        "Doğrulanmamış iddia üretilmedi (içerik/hacim); yanıt ürün verisiyle teyit edilmeli."
+      ],
+      "islem_zamani": "2026-09-28T09:31:12.715+00:00"
+    },
+    {
+      "id": 14,
+      "konu": "fiyat",
+      "devret": false,
+      "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nGüncel kampanya ve indirim kodlarımızı web sitemizin kampanyalar bölümünden takip edebilirsiniz.\nİlgilendiğiniz ürünün tam adını paylaşırsanız güncel bilgiyi hemen iletelim.\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+      "not": "Aktif indirim kodu / fiyat listesi temsilci tarafından teyit edilmeli.",
+      "kanal": "instagram",
+      "musteri_id": 10,
+      "mesaj": "İndirim kodunuz var mı, fiyat listesi paylaşır mısınız?",
+      "dil": "tr",
+      "guven": 0.78,
+      "etiket": null,
+      "ikincil_konular": [
+        "urun-sorusu"
+      ],
+      "siparis_numaralari": [],
+      "eslesen_kurallar": [
+        "fiyat:fiyat",
+        "fiyat:indirim",
+        "urun-sorusu:var-mi"
+      ],
+      "notlar": [
+        "Aktif indirim kodu / fiyat listesi temsilci tarafından teyit edilmeli."
+      ],
+      "islem_zamani": "2026-09-28T09:31:12.897+00:00"
+    },
+    {
+      "id": 15,
+      "konu": "urun-sorusu",
+      "devret": false,
+      "cevap_taslagi": "Merhaba, sorunuz için teşekkür ederiz.\nHayvan deneyi politikası konusunda doğrulanmış bilgiyi iletebilmemiz için ilgilendiğiniz ürünün tam adını paylaşır mısınız?\nBaşka bir konuda yardımcı olabileceğimiz bir şey olursa bize yazabilirsiniz.",
+      "not": "Doğrulanmamış iddia üretilmedi (hayvan testi); yanıt ürün verisiyle teyit edilmeli.",
+      "kanal": "whatsapp",
+      "musteri_id": 11,
+      "mesaj": "Merhaba, ürünleriniz hayvanlar üzerinde test ediliyor mu?",
+      "dil": "tr",
+      "guven": 0.86,
+      "etiket": null,
+      "ikincil_konular": [],
+      "siparis_numaralari": [],
+      "eslesen_kurallar": [
+        "urun-sorusu:hayvan-testi",
+        "urun-sorusu:urun-geneli"
+      ],
+      "notlar": [
+        "Doğrulanmamış iddia üretilmedi (hayvan testi); yanıt ürün verisiyle teyit edilmeli."
+      ],
+      "islem_zamani": "2026-09-28T09:31:12.898+00:00"
+    }
+  ]
+}

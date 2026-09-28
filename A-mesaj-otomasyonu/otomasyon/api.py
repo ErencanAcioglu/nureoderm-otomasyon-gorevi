@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Tuple
 
+from .sablonlar import metinler, tutar_bicimle
+
 try:  # Python 3.8+
     from typing import Protocol
 except ImportError:  # pragma: no cover
@@ -25,7 +27,6 @@ except ImportError:  # pragma: no cover
 TEMEL_URL = "https://dummyjson.com"
 ZAMAN_ASIMI_SN = 10
 DENEME_SAYISI = 2
-PARA_BIRIMI = "USD"  # DummyJSON para birimi belirtmiyor; mağaza verisi USD varsayılır.
 
 
 class SorguDurumu(Enum):
@@ -89,6 +90,33 @@ def sepet_yorumla(sepet_id: int, veri: Any) -> SepetSorgusu:
     return SepetSorgusu(sepet_id, SorguDurumu.BULUNDU, sepet=sepet)
 
 
+def json_getir(url: str, zaman_asimi: float = ZAMAN_ASIMI_SN,
+               deneme_sayisi: int = DENEME_SAYISI) -> Tuple[Optional[int], Any, Optional[str]]:
+    """GET + JSON. Dönüş: (http_kodu, gövde, hata). Hiçbir durumda istisna fırlatmaz.
+
+    404 hata sayılmaz (kod=404 döner); ağ hatası, zaman aşımı ve 5xx tekrar denenir,
+    diğer 4xx tekrar denenmez.
+    """
+    istek = urllib.request.Request(
+        url, headers={"Accept": "application/json", "User-Agent": "nureoderm-otomasyon/1.0"}
+    )
+    son_hata = "bilinmeyen hata"
+    for _ in range(deneme_sayisi):
+        try:
+            with urllib.request.urlopen(istek, timeout=zaman_asimi) as yanit:
+                return getattr(yanit, "status", 200), json.loads(yanit.read().decode("utf-8")), None
+        except urllib.error.HTTPError as hata:
+            if hata.code == 404:
+                return 404, None, None
+            son_hata = f"HTTP {hata.code}"
+            if hata.code < 500:
+                break
+        except (urllib.error.URLError, socket.timeout, TimeoutError,
+                json.JSONDecodeError, UnicodeDecodeError) as hata:
+            son_hata = f"{type(hata).__name__}: {hata}"
+    return None, None, son_hata
+
+
 class DummyJSONIstemcisi:
     def __init__(self, temel_url: str = TEMEL_URL, zaman_asimi: float = ZAMAN_ASIMI_SN,
                  deneme_sayisi: int = DENEME_SAYISI) -> None:
@@ -106,25 +134,13 @@ class DummyJSONIstemcisi:
         return self._onbellek[sepet_id]
 
     def _istek(self, sepet_id: int) -> SepetSorgusu:
-        istek = urllib.request.Request(
-            f"{self.temel_url}/carts/{int(sepet_id)}",
-            headers={"Accept": "application/json", "User-Agent": "nureoderm-otomasyon/1.0"},
-        )
-        son_hata = "bilinmeyen hata"
-        for _ in range(self.deneme_sayisi):
-            try:
-                with urllib.request.urlopen(istek, timeout=self.zaman_asimi) as yanit:
-                    return sepet_yorumla(sepet_id, json.loads(yanit.read().decode("utf-8")))
-            except urllib.error.HTTPError as hata:
-                if hata.code == 404:
-                    return SepetSorgusu(sepet_id, SorguDurumu.BULUNAMADI)
-                son_hata = f"HTTP {hata.code}"
-                if hata.code < 500:
-                    break  # 4xx tekrar denemekle düzelmez
-            except (urllib.error.URLError, socket.timeout, TimeoutError,
-                    json.JSONDecodeError, UnicodeDecodeError) as hata:
-                son_hata = f"{type(hata).__name__}: {hata}"
-        return SepetSorgusu(sepet_id, SorguDurumu.HATA, hata=son_hata)
+        kod, veri, hata = json_getir(f"{self.temel_url}/carts/{int(sepet_id)}",
+                                     self.zaman_asimi, self.deneme_sayisi)
+        if kod == 404:
+            return SepetSorgusu(sepet_id, SorguDurumu.BULUNAMADI)
+        if hata:
+            return SepetSorgusu(sepet_id, SorguDurumu.HATA, hata=hata)
+        return sepet_yorumla(sepet_id, veri)
 
 
 def dogrula(sepet: Sepet, musteri_id: Any) -> Optional[DogrulanmisSepet]:
@@ -134,19 +150,13 @@ def dogrula(sepet: Sepet, musteri_id: Any) -> Optional[DogrulanmisSepet]:
     return None
 
 
-def _tutar(deger: float) -> str:
-    # 1467.88 → "1.467,88 USD"
-    return f"{deger:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".") + f" {PARA_BIRIMI}"
-
-
-def siparis_bilgi_metni(dogrulanmis: DogrulanmisSepet) -> str:
+def siparis_bilgi_metni(dogrulanmis: DogrulanmisSepet, dil: str = "tr") -> str:
     if not isinstance(dogrulanmis, DogrulanmisSepet):
         raise TypeError("Sipariş bilgisi yalnızca sahipliği doğrulanmış sepet için üretilebilir")
     sepet = dogrulanmis.sepet
+    m = metinler(dil)
     satirlar = [f"• {u.baslik} × {u.adet}" for u in sepet.urunler]
-    return (
-        f"Merhaba, {sepet.id} numaralı siparişiniz sistemimizde kayıtlı. Sipariş içeriği:\n"
-        + "\n".join(satirlar)
-        + f"\nToplam tutar: {_tutar(sepet.toplam)}\n"
-        "Kargo takip bilgisi hazır olduğunda size ayrıca iletilecektir."
+    return "\n".join(
+        [m["siparis_baslik"].format(no=sepet.id), *satirlar,
+         m["siparis_toplam"].format(tutar=tutar_bicimle(sepet.toplam, dil)), m["siparis_kargo"]]
     )

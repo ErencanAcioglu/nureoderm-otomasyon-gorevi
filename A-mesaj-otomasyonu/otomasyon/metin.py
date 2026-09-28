@@ -48,6 +48,32 @@ def normalize(metin: str) -> str:
     return re.sub(r"\s+", " ", metin).strip()
 
 
+_TR_HARFLERI = frozenset("çğıöşüÇĞİÖŞÜâÂ")
+_EN_ISARETLERI = frozenset({
+    "order", "status", "shipping", "shipped", "delivery", "tracking", "where", "is", "my", "hi",
+    "hello", "the", "it", "has", "been", "week", "please", "price", "how", "much", "when", "thanks",
+    "thank", "you", "what", "can", "refund", "return", "your", "do", "does", "have", "i",
+})
+_TR_ISARETLERI = frozenset({
+    "merhaba", "ne", "mi", "mu", "var", "siparis", "siparisim", "nerede", "kadar", "nedir", "acaba",
+    "urun", "fiyat", "bir", "ve", "icin", "misiniz", "musunuz", "hangi", "zaman", "numarali",
+})
+
+
+def dil_tespit(ham_metin: str) -> str:
+    """Hafif dil kontrolü: 'en' yalnızca mesaj bariz İngilizceyse, aksi halde 'tr'.
+
+    Türkçe'ye özgü harf varsa Türkçe; yoksa en az 2 İngilizce işaret kelimesi olmalı ve
+    Türkçe işaretlerden fazla olmalı. Belirsizlikte varsayılan dil Türkçe'dir.
+    """
+    if any(c in _TR_HARFLERI for c in ham_metin):
+        return "tr"
+    kelimeler = normalize(ham_metin).split()
+    en = sum(k in _EN_ISARETLERI for k in kelimeler)
+    tr = sum(k in _TR_ISARETLERI for k in kelimeler)
+    return "en" if en >= 2 and en > tr else "tr"
+
+
 def url_iceriyor(ham_metin: str) -> bool:
     return bool(_URL_RE.search(ham_metin))
 

@@ -14,7 +14,7 @@ from otomasyon.isleyici import (
     politika_denetimi,
 )
 
-from tests.sahte_istemci import SahteIstemci
+from tests.sahte_istemci import SahteIstemci, SahteUrunIstemcisi
 
 MESAJLAR = json.loads((Path(__file__).resolve().parents[1] / "mesajlar.json").read_text(encoding="utf-8"))
 
@@ -24,7 +24,7 @@ def _kayit(mesaj, id_=100, musteri_id=1):
 
 
 def _isle(kayit, istemci=None):
-    return isle(kayit, istemci or SahteIstemci())
+    return isle(kayit, istemci or SahteIstemci(), SahteUrunIstemcisi())
 
 
 class HassasKonuTesti(unittest.TestCase):
@@ -34,12 +34,13 @@ class HassasKonuTesti(unittest.TestCase):
             with self.subTest(mesaj=mesaj):
                 t = _isle(_kayit(mesaj))
                 self.assertTrue(t.devret)
-                self.assertEqual(t.cevap_taslagi, ONAYLI_SABLONLAR[t.konu])
+                self.assertEqual(t.cevap_taslagi, ONAYLI_SABLONLAR["tr"][t.konu])
 
     def test_onayli_sablonlarda_oneri_teshis_yok(self):
-        for konu, sablon in ONAYLI_SABLONLAR.items():
-            for ifade in YASAKLI_IFADELER:
-                self.assertNotIn(ifade, sablon.lower(), f"{konu}: {ifade!r}")
+        for dil, sablonlar in ONAYLI_SABLONLAR.items():
+            for konu, sablon in sablonlar.items():
+                for ifade in YASAKLI_IFADELER:
+                    self.assertNotIn(ifade, sablon.lower(), f"{dil}/{konu}: {ifade!r}")
 
     def test_veri_seti_4_ve_5(self):
         for idx in (3, 4):
@@ -54,7 +55,7 @@ class HassasKonuTesti(unittest.TestCase):
 class PolitikaDenetimiTesti(unittest.TestCase):
     def test_devredilmeyen_hassas_konu_reddedilir(self):
         with self.assertRaises(PolitikaIhlali):
-            politika_denetimi(Talep(1, "istenmeyen-etki", False, ONAYLI_SABLONLAR["istenmeyen-etki"]))
+            politika_denetimi(Talep(1, "istenmeyen-etki", False, ONAYLI_SABLONLAR["tr"]["istenmeyen-etki"]))
 
     def test_onaysiz_hassas_taslak_reddedilir(self):
         with self.assertRaises(PolitikaIhlali):

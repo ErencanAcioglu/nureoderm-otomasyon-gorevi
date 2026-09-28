@@ -288,3 +288,95 @@ Devir: 4/15 (1, 4, 5, 8).
 **Bilinen sınır:** İngilizce yazan müşteriye (mesaj 6) taslak Türkçe üretiliyor; dil algılama henüz yok.
 
 Çalıştırma: `python3 A-mesaj-otomasyonu/main.py [--detay]` (canlı API) · Testler: `cd A-mesaj-otomasyonu && python3 -m unittest -v`
+
+---
+
+## Prompt 8 — İngilizce yerelleştirme, ürün arama (bonus), çıktı dosyaları ve dashboard
+
+```text
+Eline sağlık, güvenlik mimarisi (özellikle brute-force/numara tarama koruması ve tür denetimi) tam istediğim kurumsal olgunlukta olmuş.
+
+Varsayımlar ve Mesaj 6 (İngilizce) kararlarımız:
+1. USD varsayımı ve kargo durumu uydurmayıp temsilciye "kargo takip bilgisi eklenmeli" notu düşülmesi son derece doğru bir mühendislik yaklaşımı, aynen koruyalım.
+2. Mesaj 6'daki İngilizce dil durumunu bir avantaja dönüştürelim: Hafif bir dil kontrolüyle mesaj bariz İngilizce tespit edildiğinde (örn. 'order', 'status', 'shipping', 'where is' gibi kelimeler üzerinden) sipariş durum şablonunu İngilizce üret ("Hello, your order #3 has been verified. Items: ... Total: 1,467.88 USD..."). Bu inisiyatifi hem prompt günlüğüne hem de README'ye güçlü bir artı puan olarak işleyeceğiz.
+
+Şimdi Bölüm A'nın kalan tüm çıktılarını ve bonus maddesini tamamlayalım:
+
+1. Bonus Ürün Arama Entegrasyonu ('otomasyon/urun_arama.py'):
+   - 'urun-sorusu' ve 'fiyat' mesajlarında geçen ürün terimlerini DummyJSON 'GET https://dummyjson.com/products/search?q={terim}' ile sorgula.
+   - Eşleşme olursa ürünün başlığını ve fiyatını taslağa ekle.
+   - Kozmetik test verisi genel mağaza olduğu için eşleşmeyen ürünlerde ("hayvanlar üzerinde test", "kargo firması" gibi) kurumsal ve profesyonel genel taslak metinler üret.
+
+2. Çıktı Dosyaları:
+   - 'A-mesaj-otomasyonu/talepler.json': 15 mesajın tamamı için zorunlu `{ id, konu, devret, cevap_taslagi, not }` şemasıyla eksiksiz üretilsin.
+   - İnisiyatif olarak veri analitiği için 'A-mesaj-otomasyonu/talepler_detay.json' dosyasını da (güven skoru, tespit edilen dil, işlem zamanı içeren zengin şema) oluştur.
+
+3. Raporlama & Özet:
+   - Terminalde ANSI formatında kategori dağılımı, toplam ve devredilen sayıları basan özet modülünü çalıştır.
+   - 'A-mesaj-otomasyonu/ozet.html': Tek sayfalık, modern, responsive, istatistik kartları ve filtreli tablo içeren estetik bir HTML dashboard üret.
+
+Adımı tamamlayınca:
+1. Bu promptu, aldığımız kararları ve çıktı özetini 'promptlar/A-claude-code.md' dosyasına ekle.
+2. Kesinlikle hiçbir 'Co-authored-by' veya bot imzası eklemeden, yalnızca ErencanAcioglu kimliğiyle commit at ve pushla:
+   git add . && git commit -m "feat(output): implement product search bonus, english localization and html dashboard"
+   git push origin main
+```
+
+### Kararlar
+
+- USD varsayımı korunuyor; kargo durumu uydurulmuyor, temsilciye "kargo takip bilgisi temsilci tarafından eklenmeli" notu düşülüyor.
+- Bariz İngilizce mesajlar İngilizce yanıtlanır; belirsizlikte varsayılan dil Türkçe.
+
+### Yapılanlar (Claude)
+
+**Ön keşif (canlı API):** 18 kozmetik terimi `/products/search` ile denendi.
+- Yalnızca `lotion`, `lipstick`, `mascara`, `soap`, `nail polish`, `body wash` gerçek kozmetik ürün döndürüyor.
+- `serum`, `retinol`, `toner`, `sunscreen`, `vitamin c` → 0 sonuç.
+- `cream` → "Red Lipstick" ve "Ice Cream" (ikisi de yanlış pozitif).
+- Bu bulgu alaka filtresinin tasarımını belirledi.
+
+**1. İngilizce yerelleştirme**
+- `metin.dil_tespit()`: Türkçe'ye özgü harf varsa Türkçe. Yoksa en az 2 İngilizce işaret kelimesi (order, status, shipping, where, is, my…) olmalı ve Türkçe işaretlerden fazla olmalı. Veri setinde yalnızca mesaj 6 İngilizce çıktı (test ile sabitlendi).
+- **`otomasyon/sablonlar.py` (yeni):** Müşteriye giden **tüm** metinler TR/EN olarak tek dosyada; iki dilin anahtar kümesinin aynı olduğu test ediliyor. Tutar biçimi TR `1.794,85 USD` / EN `1,794.85 USD`.
+- İngilizce yanıt; sipariş, bulunamadı, devir ve hassas konu şablonlarının hepsini kapsıyor. Hassas konu EN şablonları da `politika_denetimi` onay listesinde; yasaklı ifadeler listesine İngilizce karşılıklar eklendi (recommend, treat, diagnos, cream, doctor…).
+- Enumeration koruması İngilizcede de geçerli: yetkisiz sipariş ile bulunamayan sipariş aynı İngilizce metni alıyor.
+- Mesaj 6 çıktısı:
+  ```
+  Hello, your order #3 has been verified. Items:
+  • Fish Steak × 1 … • Party Glasses × 5
+  Total: 1,794.85 USD
+  We will send you the tracking details as soon as your shipment is ready.
+  ```
+
+**2. Ürün arama — bonus (`otomasyon/urun_arama.py`)**
+- TR → EN terim eşlemesi: nemlendirici → moisturizer + lotion, güneş kremi → sunscreen, tonik → toner, C vitamini → vitamin c, ruj → lipstick…
+- **Alaka filtresi:** Ürün `beauty` / `skin-care` / `fragrances` kategorisinde olmalı **ve** sorgu kelimeleri başlıkta geçmeli. Böylece "krem" için gelen "Ice Cream" ve "Red Lipstick" eleniyor. Elenenler temsilci notuna yazılıyor, yani filtreleme şeffaf.
+- HTTP katmanı `api.json_getir()` olarak ortaklaştırıldı: aynı zaman aşımı / tekrar deneme / çökmeme davranışı. Sorgular önbellekli; arama hatası taslağı bozmaz, nota yazılır.
+- Arama yalnızca devredilmeyen `urun-sorusu` / `fiyat` mesajlarında yapılır (sipariş ve hassas mesajlarda yapılmadığı test edildi).
+- **İddiasız genel taslaklar:** İçerik/hacim, cilt tipi/kullanım, hayvan testi, kargo firması, indirim kodu gibi doğrulanmış verisi olmayan konularda bilgi uydurulmaz. Taslak müşteriden ürün adını ister, temsilciye "yanıt ürün verisiyle teyit edilmeli" notu düşer. "test edilmez", "alkolsüz", "uygundur", "vegan" gibi iddiaların taslaklarda geçmediği test ediliyor.
+
+| # | Arama | Sonuç |
+|---|---|---|
+| 9 | serum, retinol | eşleşme yok → genel taslak + cilt tipi doğrulama |
+| 10 | moisturizer, lotion, cream | **Vaseline Men Body and Face Lotion — 9,99 USD**; Ice Cream + Red Lipstick elendi |
+| 11 | serum, vitamin c | eşleşme yok → genel taslak |
+| 13 | toner | eşleşme yok → içerik/hacim doğrulama |
+| 12, 14, 15 | — | kargo / indirim / hayvan testi genel taslakları |
+
+**3. Çıktı dosyaları** (`python3 A-mesaj-otomasyonu/main.py` hepsini üretir)
+- `talepler.json`: 15 kayıt, tam olarak `{id, konu, devret, cevap_taslagi, not}` (şema test ile doğrulandı).
+- `talepler_detay.json`: `meta` (oluşturulma, kaynak, dağılım, diller) + her talep için kanal, musteri_id, mesaj, dil, güven, etiket, ikincil konular, sipariş no'ları, eşleşen kurallar, notlar ve `islem_zamani` (UTC, ms).
+
+**4. Raporlama (`otomasyon/ozet.py`)**
+- **Terminal:** ANSI renkli özet; KPI'lar (toplam 15, devredilen 4 (%27), otomatik taslak 10, güvenlik engeli 1, spam 1, ortalama güven 0.86), konu bazında adet/devir çubukları, devredilen mesajlar listesi ve dil dağılımı. `NO_COLOR`, TTY olmayan çıktı ve `--renksiz` desteklenir. Devir kısmı renksiz modda da ayırt edilsin diye `▓` ile çiziliyor.
+- **`ozet.html`:** Tek dosya, dış bağımlılık yok (çevrimdışı açılır). İçerik: 5 KPI kartı, konu dağılımı (otomatik/devredilen yığılı çubuk), "Temsilci bekleyenler" paneli, konu çipleri + durum filtresi + metin araması, satıra tıklayınca taslak ve notlar. Açık/koyu tema ve mobil kart düzeni var.
+- **XSS koruması:** Mesajlar JSON olarak gömülür (`<`, `>` kaçışlı) ve yalnızca `textContent` ile yazılır; `innerHTML` kullanılmaz. `</script><img onerror>` içeren mesajla test edildi.
+- Headless Chrome ile masaüstü (1280px) ve mobil (390px) ekran görüntüsü alınıp kontrol edildi. İki kusur bulunup düzeltildi: "Temsilci bekleyenler"de konu adı ile not aynı satıra yapışıyordu; mobilde güven çubuğu etiketinin altına kayıyordu.
+
+**Testler:** 69 test (+1 canlı), hepsi geçti. Yeni `tests/test_cikti.py`: dil tespiti, EN şablonlar, EN enumeration koruması, tutar biçimi, terim eşlemesi, alaka filtresi, arama hatası, iddiasız taslak, istatistikler, ANSI/renksiz çıktı, HTML veri + XSS, detay şeması. Birim testleri ağa çıkmaz (`SahteUrunIstemcisi` gerçek API yanıtlarıyla).
+
+**Mutasyon kontrolü:**
+- Alaka filtresi kapatılınca 3 test, dil tespiti kapatılınca 5 test başarısız oldu.
+- Mutasyon betiğindeki kendi hatam: `test_cikti` fonksiyonu doğrudan import ettiği için, modül mutasyonlu haldeyken yüklenince geri alınan fonksiyonu görmedi ve "orijinal" koşuda 1 sahte hata çıktı. Sebep bulundu; normal koşuda 69/69 geçiyor.
+
+**Sonuç:** 15 mesaj → 4 devir (1 güvenlik, 4 istenmeyen etki, 5 iade, 8 çoklu niyet), 10 otomatik taslak, 1 spam (yanıtsız).
