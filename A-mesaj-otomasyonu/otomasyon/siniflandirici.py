@@ -30,7 +30,8 @@ HASSAS_KONULAR = frozenset({"iade-sikayet", "istenmeyen-etki"})
 # Puanlama adımında eşitlik bozma sırası.
 ONCELIK = ("siparis-durumu", "fiyat", "urun-sorusu", "diger")
 
-DUSUK_GUVEN_ESIGI = 0.6
+# Bu eşiğin altındaki kararlar insana devredilir (bkz. isleyici.py).
+DUSUK_GUVEN_ESIGI = 0.5
 SPAM_ESIGI = 2
 SIPARIS_NO_AGIRLIGI = 2.0
 
@@ -119,6 +120,10 @@ class Siniflandirma:
     eslesen_kurallar: Tuple[str, ...]
     ikincil_konular: Tuple[str, ...]
     siparis_numaralari: Tuple[int, ...]
+    konu_puanlari: Tuple[Tuple[str, float], ...] = ()
+
+    def puan(self, konu: str) -> float:
+        return dict(self.konu_puanlari).get(konu, 0.0)
 
     @property
     def hassas(self) -> bool:
@@ -162,7 +167,8 @@ def siniflandir(mesaj: str) -> Siniflandirma:
         ikincil = tuple(
             k for k, _ in sorted(puanlar.items(), key=lambda kv: -kv[1]) if k != konu and puanlar[k] > 0
         )
-        return Siniflandirma(konu, guven, etiket, tuple(eslesenler) + ekstra, ikincil, numaralar)
+        return Siniflandirma(konu, guven, etiket, tuple(eslesenler) + ekstra, ikincil, numaralar,
+                             tuple((k, p) for k, p in puanlar.items() if p > 0))
 
     # 1) Sağlık riski: spam veya başka konu gibi görünse bile kaçırılmamalı.
     if puanlar["istenmeyen-etki"] > 0:

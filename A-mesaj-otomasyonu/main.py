@@ -1,8 +1,8 @@
-"""15 müşteri mesajını sınıflandırıp sonuçları terminalde gösterir.
+"""15 müşteri mesajını işleyip sonuçları terminalde gösterir.
 
 Kullanım:
-    python3 A-mesaj-otomasyonu/main.py            # tablo + konu dağılımı
-    python3 A-mesaj-otomasyonu/main.py --detay    # eşleşen kurallar da gösterilir
+    python3 A-mesaj-otomasyonu/main.py            # tablo + konu/devir dağılımı
+    python3 A-mesaj-otomasyonu/main.py --detay    # eşleşen kurallar, notlar ve taslaklar da gösterilir
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from otomasyon import KONULAR, siniflandir
+from otomasyon import KONULAR, isle
 
 VERI_DOSYASI = Path(__file__).resolve().parent / "mesajlar.json"
 
@@ -22,41 +22,35 @@ def _kisalt(metin: str, uzunluk: int) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Müşteri mesajı sınıflandırıcı")
-    parser.add_argument("--detay", action="store_true", help="eşleşen kuralları göster")
+    parser = argparse.ArgumentParser(description="Müşteri mesajı otomasyonu")
+    parser.add_argument("--detay", action="store_true", help="kurallar, notlar ve taslakları göster")
     args = parser.parse_args()
 
     mesajlar = json.loads(VERI_DOSYASI.read_text(encoding="utf-8"))
 
-    print(f"{'ID':>3}  {'KANAL':<9}  {'KONU':<15}  {'GÜVEN':>5}  {'NOT':<26}  MESAJ")
-    print("-" * 110)
+    print(f"{'ID':>3}  {'KANAL':<9}  {'KONU':<15}  {'GÜVEN':>5}  {'DEVRET':<6}  {'NOT':<34}  MESAJ")
+    print("-" * 120)
     dagilim: Counter = Counter()
+    devir: Counter = Counter()
     for m in mesajlar:
-        s = siniflandir(m["mesaj"])
-        dagilim[s.konu] += 1
+        t = isle(m)
+        s = t.siniflandirma
+        dagilim[t.konu] += 1
+        devir[t.konu] += t.devret
 
-        notlar = []
-        if s.etiket:
-            notlar.append(s.etiket)
-        if s.hassas:
-            notlar.append("HASSAS")
-        if s.siparis_numaralari:
-            notlar.append("sip#" + ",".join(map(str, s.siparis_numaralari)))
-        if s.inceleme_gerekli:
-            notlar.append("düşük güven")
-        if s.ikincil_konular and not s.etiket:
-            notlar.append("+" + s.ikincil_konular[0])
-
-        print(f"{m['id']:>3}  {m['kanal']:<9}  {s.konu:<15}  {s.guven:>5.2f}  "
-              f"{_kisalt(' | '.join(notlar), 26):<26}  {_kisalt(m['mesaj'], 44)}")
+        print(f"{m['id']:>3}  {m['kanal']:<9}  {t.konu:<15}  {s.guven:>5.2f}  "
+              f"{'EVET' if t.devret else '-':<6}  {_kisalt(t.to_dict()['not'], 34):<34}  "
+              f"{_kisalt(m['mesaj'], 36)}")
         if args.detay:
             print(f"{'':>5}kurallar: {', '.join(s.eslesen_kurallar) or '-'}")
+            print(f"{'':>5}not     : {t.to_dict()['not'] or '-'}")
+            print(f"{'':>5}taslak  : {t.cevap_taslagi or '-'}")
 
-    print("-" * 110)
-    print("Konu dağılımı:")
+    print("-" * 120)
+    print(f"{'Konu':<17}{'Adet':>4}  {'Devir':>5}")
     for konu in KONULAR:
-        print(f"  {konu:<15} {dagilim[konu]:>2}")
-    print(f"  {'TOPLAM':<15} {sum(dagilim.values()):>2}")
+        print(f"  {konu:<15}{dagilim[konu]:>4}  {devir[konu]:>5}")
+    print(f"  {'TOPLAM':<15}{sum(dagilim.values()):>4}  {sum(devir.values()):>5}")
 
 
 if __name__ == "__main__":

@@ -177,3 +177,40 @@ Python 3.9.6, yalnızca standart kütüphane (dış bağımlılık yok).
 **Ek kontrol (veri setine aşırı uyum testi):** "SİPARİŞİM NEREDE?" → siparis-durumu; spam linki içeren kaşıntı şikâyeti → istenmeyen-etki (spam'e düşmedi); "12 nolu siparişim kırık geldi" → iade-sikayet; "Kasım ayında…" → kaşıntı kuralını tetiklemedi; "Merhaba" → diger / 0.2.
 
 Henüz yapılmadı: birim testleri, sipariş sorgusu (DummyJSON), devret kararı, `talepler.json` ve özet sayfası.
+
+---
+
+## Prompt 6 — Güvenlik/regülasyon sınırları: zorunlu devir ve politika kısıtları
+
+```text
+Sınıflandırma motoru oturdu. Şimdi regülasyon ve güvenlik sınırlarını koda işleyelim:
+
+'A-mesaj-otomasyonu/otomasyon/isleyici.py' dosyasını kuralım:
+1. 'istenmeyen-etki' ve 'iade-sikayet' kategorileri için ZORUNLU olarak `devret: true` atanacak.
+2. Bu mesajlara KESİNLİKLE ürün önerisi, tedavi veya teşhis içeren cevap üretilmeyecek. Sadece durumu uzman ekibe aktaran kurumsal bir şablon dönecek ("Yaşadığınız durum adına üzgünüz, uzman temsilcimiz konuyu ivedilikle inceleyecektir...").
+3. İnisiyatif Kuralı: Güven skoru 0.5'in altındaysa veya çelişkili niyet varsa sistem otomatik olarak `devret: true` ve "Düşük Güven Skoru / Çoklu Niyet" notu düşecek.
+
+Kodu güncelle, mantığı test et. Ardından:
+1. Bu promptu ve yapılan işi 'promptlar/A-claude-code.md' dosyasına ekle.
+2. Claude/bot imzası olmadan commit atıp pushla:
+   git add . && git commit -m "feat(safety): enforce human handoff and policy restrictions for sensitive topics"
+   git push origin main
+```
+
+### Yapılanlar (Claude)
+
+- **`otomasyon/isleyici.py`** (yeni): Sınıflandırmayı `Talep` kaydına çeviren politika katmanı. `Talep.to_dict()` tam olarak `{id, konu, devret, cevap_taslagi, not}` üretir.
+  - **Hassas konular:** `devret: true` ve yalnızca `ONAYLI_SABLONLAR`'daki sabit kurumsal metin. `istenmeyen-etki` için ek not: "İstenmeyen etki kaydı (kozmetovijilans) açılmalı."
+  - **Otomatik devir:** güven < 0.5 → "Düşük Güven Skoru (x.xx)"; çoklu niyet → "Çoklu Niyet: A + B". Bu durumda cevap taslağı nötr bir devir şablonudur.
+  - **Çoklu niyet tanımı (deterministik):** ikincil konu puanı ≥ 2 **ve** kazanan puanın ≥ %50'si. Böylece "Nemlendirici krem ne kadar?" gibi tek zayıf ürün adı çoklu niyet sayılmaz; mesaj 8 (fiyat + sipariş) sayılır.
+  - **Spam:** devredilmez, yanıt üretilmez, "linke tıklanmamalı" notu düşülür.
+  - **`politika_denetimi()`:** Her Talep dışarı verilmeden önce yeniden doğrulanır: hassas konu devredilmemişse, onaysız taslak varsa ya da yasaklı ifade (öner, tavsiye, tedavi, teşhis, krem, doktor, alerji…) geçiyorsa `PolitikaIhlali` fırlatılır. Amaç: ileride eklenecek sipariş/ürün taslak üreticileri bu sınırı yanlışlıkla delemesin.
+- **`siniflandirici.py`:** `DUSUK_GUVEN_ESIGI` 0.6 → 0.5 (tek eşik, promptla uyumlu); çoklu niyet hesabı için sonuca `konu_puanlari` eklendi.
+- **`main.py`:** DEVRET sütunu, konu bazında devir sayıları; `--detay` ile not ve taslak.
+- **Testler (`tests/`, stdlib `unittest`, 22 test, hepsi geçti):** 15 mesajın beklenen konuları, Türkçe normalizasyon, "200 ml" sipariş no sayılmaz, hassas konularda zorunlu devir + şablon, şablonlarda yasaklı ifade olmaması, politika denetiminin ihlalleri reddetmesi, düşük güven / çoklu niyet devri, zayıf ürün adının çoklu niyet sayılmaması, spam davranışı, çıktı alan şeması.
+- **Mutasyon kontrolü:** Onaylı şablon bilerek "…krem öneririz." yapıldı → `PolitikaIhlali: #4: hassas yanıtta yasaklı ifade` ile yakalandı. Testlerin boşuna geçmediği doğrulandı.
+
+**Sonuç:** Devir 3/15 → 4 (istenmeyen-etki), 5 (iade-sikayet), 8 (çoklu niyet). Mesaj 1'in (başka müşterinin siparişi) devri, DummyJSON sahiplik kontrolüyle bir sonraki adımda gelecek.
+**Karar kaydı:** Prompt 1'de açık kalan "mesaj 4 taslağına sağlık cümlesi eklensin mi?" sorusu bu promptla kapandı: yalnızca kurumsal devir şablonu, sağlık tavsiyesi yok.
+
+Çalıştırma: `python3 A-mesaj-otomasyonu/main.py [--detay]` · Testler: `cd A-mesaj-otomasyonu && python3 -m unittest -v`
