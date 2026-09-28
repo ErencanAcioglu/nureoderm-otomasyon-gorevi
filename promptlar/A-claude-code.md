@@ -130,3 +130,50 @@ git filter-branch -f --msg-filter 'sed "/Co-authored-by/d"' HEAD
 - `git filter-branch` ile üç commit yeniden yazıldı, `refs/original` yedeği silindi. Doğrulama: yazar ve committer her commit'te `ErencanAcioglu <erencanacioglu@gmail.com>`, mesajlarda Claude/Anthropic/co-author izi yok.
 - Hash değişimi (önceki kayıtlarda geçen eski hash'ler): `b1662a3 → 8b77830`, `e1f454f → b3ace90`, `308555a → 281d927`.
 - Bu kayıt temiz bir Conventional Commit ile eklendi ve `git push -u origin main --force-with-lease` ile gönderildi.
+
+---
+
+## Prompt 5 — Modüler paket: normalizasyon, kural motoru, güven skoru
+
+```text
+Harika. Şimdi projeyi spagetti tek script yerine profesyonel, modüler bir Python paketi olarak kuralım.
+
+'A-mesaj-otomasyonu/otomasyon/' modülünü oluşturalım:
+- metin.py: Karakter normalizasyonu ve temizleme.
+- siniflandirici.py: Belirlenen 6 kategoriye (`urun-sorusu`, `fiyat`, `siparis-durumu`, `iade-sikayet`, `istenmeyen-etki`, `diger`) ayıran kural motoru.
+
+Şu kuralları ekle:
+1. Spam Filtresi: 7 numaralı mesaj gibi reklamları doğrudan 'diger' ve 'Spam/İlgisiz' yap.
+2. Güven Skoru (Confidence Score): 0.0 - 1.0 arası deterministik güven skoru hesapla.
+3. 'istenmeyen-etki' anahtar kelimelerini en yüksek öncelikle tara.
+
+'A-mesaj-otomasyonu/main.py' ile 15 mesajı çalıştırıp sonuçları ekranda göster.
+
+Adımı tamamlayınca:
+1. Bu promptu ve yapılan işi 'promptlar/A-claude-code.md' dosyasına ekle.
+2. Kesinlikle AI/Claude/co-author imzası olmadan, yalnızca ErencanAcioglu kimliğiyle commit atıp pushla:
+   git add . && git commit -m "feat(classifier): implement modular text normalization, rule engine and confidence scoring"
+   git push origin main
+```
+
+### Yapılanlar (Claude)
+
+Python 3.9.6, yalnızca standart kütüphane (dış bağımlılık yok).
+
+- `otomasyon/metin.py`
+  - `normalize()`: Türkçe'ye uygun küçük harf (`I→ı`, `İ→i` düzeltmesi; Python'un `"İ".lower()` davranışı birleşik nokta üretiyor), `ç ğ ı ö ş ü â` → ASCII, URL'leri ayıklama, noktalama → boşluk.
+  - `siparis_numaralari()`: Sayıyı yalnızca bir çapa ifadesinin yanındaysa alır (`#3`, `12 numaralı`, `nolu`, `sipariş no 5`, `order 3`). "200 ml" gibi sayılar sipariş no sayılmaz.
+  - `url_iceriyor()`: `http`, `www` ve `bit.ly/...` gibi şemasız kısa linkler.
+- `otomasyon/siniflandirici.py`: Ağırlıklı regex kuralları (`Kural(konu, ad, desen, agirlik)`) ve açıklanabilir sonuç (`eslesen_kurallar`, `ikincil_konular`).
+  - Karar sırası: **1) istenmeyen-etki** (tek eşleşme yeter, spam bile olsa kaçmaz) → **2) spam** (≥2 sinyal: link / takipçi-beğeni / abartılı vaat → `diger` + `Spam/İlgisiz`) → **3) iade-sikayet** → **4) puanlama** (siparis-durumu / fiyat / urun-sorusu / diger; eşitlikte bu sıra) → **5) eşleşme yok** (`diger`, güven 0.2).
+  - Güven skoru deterministik: mutlak kararlarda `0.5 + 0.5·p/(p+1)`; puanlamada `0.5·s1/(s1+1) + 0.5·(s1−s2)/s1` (sinyal gücü + rakip konuya fark). `< 0.6` → `inceleme_gerekli`.
+  - Ürün adları (krem, serum…) bilerek zayıf sinyal (0.5): "Nemlendirici krem ne kadar?" fiyat sorusudur.
+  - Genel kargo sorusu (mesaj 12) `siparis-durumu`na düşmesin diye sipariş kuralı iyelik ekli biçimi ister (`siparişim`); "Siparişler hangi kargo…" → `diger`.
+- `main.py`: Tablo (id, kanal, konu, güven, not, mesaj) + konu dağılımı; `--detay` ile eşleşen kurallar.
+
+**Sonuç (15 mesaj):** siparis-durumu 5 (1,2,3,6,8) · urun-sorusu 4 (9,11,13,15) · fiyat 2 (10,14) · diger 2 (7 spam, 12) · iade-sikayet 1 (5) · istenmeyen-etki 1 (4). Prompt 1'deki elle yapılan analizle birebir aynı.
+- Mesaj 8 (fiyat + sipariş) `siparis-durumu`, güven 0.56 → "düşük güven" olarak işaretlendi; çok niyetli mesaj için istenen davranış.
+
+**Ek kontrol (veri setine aşırı uyum testi):** "SİPARİŞİM NEREDE?" → siparis-durumu; spam linki içeren kaşıntı şikâyeti → istenmeyen-etki (spam'e düşmedi); "12 nolu siparişim kırık geldi" → iade-sikayet; "Kasım ayında…" → kaşıntı kuralını tetiklemedi; "Merhaba" → diger / 0.2.
+
+Henüz yapılmadı: birim testleri, sipariş sorgusu (DummyJSON), devret kararı, `talepler.json` ve özet sayfası.
