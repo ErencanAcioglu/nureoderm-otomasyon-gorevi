@@ -62,3 +62,25 @@ API gerçekten sorgulanarak doğrulandı (`/carts/{12,5,9999,3,4}`, `/products/s
 **Riskler:** IDOR / sipariş sızıntısı (mesaj 1); eşleşmeyen yanıtta siparişin varlığını bile doğrulamamak; sayı çıkarımında "200 ml" gibi sipariş olmayan sayılar; çok niyetli mesaj (8: fiyat + sipariş); istenmeyen etkide tıbbi tavsiye/teşhis yasağı ve kozmetovijilans kaydı; içerik/hayvan testi/cilt tipi sorularında doğrulanmamış iddia üretmeme; spam/phishing linki (7); LLM kullanılırsa prompt injection → güvenlik kararları deterministik kodda kalmalı.
 
 **Bonus bulgusu:** Türkçe terimler API'de sonuç vermiyor; `serum`, `sunscreen`, `toner`, `moisturizer` → 0 sonuç; `cream` → "Ice Cream" (yanlış pozitif). Kategori filtresi (beauty/skin-care) ve TR→EN terim eşlemesi gerekiyor.
+
+---
+
+## Prompt 2 — GitHub remote doğrulama ve ilk push
+
+```text
+GitHub remote bağlantısını ve ilk push işlemini kontrol edelim. Repo henüz boş görünüyor.
+
+Şu adımları sırasıyla terminalde çalıştır:
+1. `git remote -v` ile remote adresini doğrula.
+2. `https://github.com/ErencanAcioglu/nureoderm-otomasyon-gorevi.git` adresi tanımlı değilse `git remote add origin https://github.com/ErencanAcioglu/nureoderm-otomasyon-gorevi.git` komutuyla ekle.
+3. Çalışma dalını `git branch -M main` olarak ayarla.
+4. İlk commit'i uzak depoya gönder: `git push -u origin main`.
+5. Push başarılı olduysa çıktıyı ve durumu bildir.
+```
+
+### Yapılanlar (Claude)
+
+- `git remote -v`: `origin` zaten doğru adrese tanımlıydı (Prompt 1'de eklenmişti) → 2. adım atlandı.
+- `git branch -M main`: dal zaten `main`'di, komut değişiklik yapmadı.
+- `git push -u origin main` başarılı: `* [new branch] main -> main`, `main` artık `origin/main`'i takip ediyor. Repo boş göründüğü için ilk push bu adımda yapıldı; Prompt 1'deki iki commit (`b1662a3`, `e1f454f`) gönderildi.
+- Bu kayıt ayrı bir commit olarak eklenip tekrar push edildi.
