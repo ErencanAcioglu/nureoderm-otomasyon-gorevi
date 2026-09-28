@@ -84,3 +84,49 @@ GitHub remote bağlantısını ve ilk push işlemini kontrol edelim. Repo henüz
 - `git branch -M main`: dal zaten `main`'di, komut değişiklik yapmadı.
 - `git push -u origin main` başarılı: `* [new branch] main -> main`, `main` artık `origin/main`'i takip ediyor. Repo boş göründüğü için ilk push bu adımda yapıldı; Prompt 1'deki iki commit (`b1662a3`, `e1f454f`) gönderildi.
 - Bu kayıt ayrı bir commit olarak eklenip tekrar push edildi.
+
+---
+
+## Prompt 3 — Commit geçmişinden AI imzasının kaldırılması (başarısız deneme)
+
+```text
+Bir düzeltme yapalım: Commit mesajlarında ve Git geçmişinde hiçbir şekilde "Co-authored-by: Claude" veya Claude/Anthropic imzası, etiketi ya da açıklaması yer almamalıdır.
+
+Yalnızca ve sadece şu kullanıcı kimliği ve imzası geçerli olacaktır:
+- Ad: ErencanAcioglu
+- E-posta: erencanacioglu@gmail.com
+
+Şunları uygula:
+1. Eğer son commit'te co-author / Claude imzası varsa `git commit --amend --no-edit` veya uygun şekilde düzenleyerek kaldır.
+2. Bundan sonra atacağın hiçbir commit mesajına bot, AI veya araç imzası ekleme; sadece temiz Conventional Commit mesajını yaz.
+3. Değişikliği doğruladıktan sonra `git push -u origin main --force-with-lease` ile uzak depoya gönder.
+```
+
+### Yapılanlar (Claude)
+
+- Tespit: `Co-Authored-By` satırı yalnızca son commit'te değil, üç commit'in hepsinde vardı; `--amend` yetmez, geçmiş yeniden yazılmalı.
+- **Başarısız:** Claude Code'un otomatik izin denetleyicisi geçici olarak yanıt vermedi (her Bash/Edit çağrısı "no verdict" hatası). Hiçbir komut çalışmadı, repo değişmedi. Kullanıcıya elle çalıştırabileceği komutlar verildi.
+- Kural kalıcı olarak kaydedildi: bu projede commit'lere AI/araç imzası eklenmeyecek.
+
+---
+
+## Prompt 4 — Geçmiş temizliğinin tekrar denenmesi
+
+```text
+Mevcut tüm Git geçmişindeki commit'lerde yer alan "Co-authored-by: Claude" / Anthropic imzalarını tamamen temizlememiz gerekiyor. GitHub üzerinde yazar olarak sadece ErencanAcioglu görünmeli.
+
+Terminalde şu adımları çalıştır:
+
+1. `git filter-branch` veya etkileşimli filtre kullanarak tüm commit mesajlarındaki "Co-authored-by" satırlarını kaldır:
+```bash
+git filter-branch -f --msg-filter 'sed "/Co-authored-by/d"' HEAD
+```
+
+> Not: Prompt bu noktada kesik geldi; push adımı Prompt 3'teki talimattan alındı.
+
+### Yapılanlar (Claude)
+
+- Önerilen `sed "/Co-authored-by/d"` büyük/küçük harfe duyarlı; commit'lerdeki satır `Co-Authored-By:` olduğu için hiçbir şeyi silmeyecekti. Bunun yerine büyük/küçük harf duyarsız `sed '/^Co-Authored-By:/Id' | git stripspace` kullanıldı (sondaki boş satırlar da temizlendi).
+- `git filter-branch` ile üç commit yeniden yazıldı, `refs/original` yedeği silindi. Doğrulama: yazar ve committer her commit'te `ErencanAcioglu <erencanacioglu@gmail.com>`, mesajlarda Claude/Anthropic/co-author izi yok.
+- Hash değişimi (önceki kayıtlarda geçen eski hash'ler): `b1662a3 → 8b77830`, `e1f454f → b3ace90`, `308555a → 281d927`.
+- Bu kayıt temiz bir Conventional Commit ile eklendi ve `git push -u origin main --force-with-lease` ile gönderildi.
