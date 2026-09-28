@@ -59,6 +59,19 @@ class IngilizceSablonTesti(unittest.TestCase):
         self.assertEqual((t.konu, t.dil, t.devret), ("istenmeyen-etki", "en", True))
         self.assertEqual(t.cevap_taslagi, ONAYLI_SABLONLAR["en"]["istenmeyen-etki"])
 
+    def test_ingilizce_hibrit_taslak(self):
+        t = _isle(_kayit("How much is the price? Where is my order #4?", musteri_id=4))
+        self.assertTrue(t.devret)
+        self.assertIn("Hello, your order #4 has been verified.", t.cevap_taslagi)
+        self.assertIn("Total: 689.93 USD", t.cevap_taslagi)
+        self.assertIn("Your pricing question has been forwarded", t.cevap_taslagi)
+
+    def test_kismi_devir_metni(self):
+        from otomasyon.sablonlar import kismi_devir_metni
+        self.assertEqual(kismi_devir_metni("tr", ("fiyat", "urun-sorusu")),
+                         "Fiyat ve ürün sorunuzu ilgili temsilcimize ilettik; en kısa sürede size dönüş yapılacaktır.")
+        self.assertIn("diğer kısmını", kismi_devir_metni("tr", ()))
+
     def test_tutar_bicimi(self):
         self.assertEqual(tutar_bicimle(1467.88, "tr"), "1.467,88 USD")
         self.assertEqual(tutar_bicimle(1467.88, "en"), "1,467.88 USD")

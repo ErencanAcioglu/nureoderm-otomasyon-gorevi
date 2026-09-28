@@ -86,7 +86,9 @@ KURALLAR: Tuple[Kural, ...] = (
     _k("fiyat", "ne-kadar", r"\bne kadar\b", 2),
     _k("fiyat", "tutar", r"\b(kac tl|kac para|kaca|ucret\w*)\b", 2),
     _k("fiyat", "indirim", r"\b(indirim|kampanya|kupon|promosyon)", 2),
-    _k("fiyat", "en-fiyat", r"\b(price|cost|how much|discount)\b", 2),
+    # TR'deki "fiyat" + "ne kadar" ayrımıyla aynı ağırlık: iki ayrı İngilizce sinyal.
+    _k("fiyat", "en-fiyat", r"\b(price|prices|cost|discount)\b", 2),
+    _k("fiyat", "en-ne-kadar", r"\bhow much\b", 2),
     # --- urun-sorusu ---
     _k("urun-sorusu", "var-mi", r"\bvar mi\b", 1),
     _k("urun-sorusu", "icerik", r"\b(icerig\w*|icerik\w*|formul\w*)", 1.5),

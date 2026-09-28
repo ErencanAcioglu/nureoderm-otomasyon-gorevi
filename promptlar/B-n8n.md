@@ -119,3 +119,76 @@ README, ham oturum logu ve final kontrolleri kapsayan bu prompt her iki bölüme
 [`A-claude-code.md` › Prompt 9](A-claude-code.md#prompt-9--son-teslimat-readme-ham-oturum-logu-final-kontroller) altında kayıtlı.
 B ile ilgili kısmı: README'de B özeti, `npm test` / `npm run canli` talimatları ve #4640 / ürün kimliği kararlarının
 açıklaması. Son kontrolde B testleri 31/31 geçti.
+
+---
+
+## Prompt 3 — Son kabul ve denetim turu (ortak prompt, kod değişikliği yok)
+
+Tam metin ve rapor özeti: [`A-claude-code.md` › Prompt 10](A-claude-code.md#prompt-10--son-kabul-ve-denetim-turu-kod-değişikliği-yok).
+
+B'ye ait bulgular:
+- Görev metnindeki tüm zorunlu B maddeleri karşılanmış.
+- **Bonus olan n8n ekran görüntüsü yok.**
+- **Doğrulanmamış risk:** `workflow.json`'ın gerçek n8n'e import edilebilirliği. Öneri olarak "n8n kurmadan, gerçek düğüm tanımlarına karşı şema doğrulaması" sunuldu.
+
+---
+
+## Prompt 4 — n8n şema doğrulaması (ortak prompt, B kısmı)
+
+Tam metin: [`A-claude-code.md` › Prompt 11](A-claude-code.md#prompt-11--hibrit-taslak-n8n-şema-doğrulaması-ekran-görüntüleri-final).
+
+### Yapılanlar (Claude)
+
+**Kaynak:**
+- `npm view n8n-nodes-base` → sürüm 2.15.1; paket açık hali 72 MB, tarball 9 MB.
+- `npm pack` ile yalnızca dosya olarak indirildi; bağımlılık kurulmadı, n8n çalıştırılmadı.
+- İçinden n8n editörünün kullandığı `dist/types/nodes.json` (485 düğüm tanımı) çıkarıldı.
+- `B-n8n/.cache/` altında tutuluyor (`.gitignore`'da). Sürüm tekrarlanabilirlik için `2.15.1`'e sabitlendi.
+
+**Keşif:**
+- Kullandığımız 9 düğüm tipinin hepsi ve tam sürümleri tanımlarda var: httpRequest 4.2, googleSheets 4.5, scheduleTrigger 1.2, code 2, if 2.2, switch 3.2, telegram 1.2, errorTrigger 1, stickyNote 1.
+- Sheets `operation` değerleri arasında `read` var.
+- `displayOptions` sürüm koşulları `_cnd` biçiminde (`gte`, `lt`, `between`…).
+
+**`araclar/sema-dogrula.js`:**
+- Her düğüm için tip ve `typeVersion` kontrolü.
+- Her parametre için:
+  - ad tanımlı mı,
+  - `displayOptions`'a göre görünür mü (varsayılan değerler ve `@version` / `/kök` referansları dahil; görünmeyen parametreyi n8n sessizce yok sayar),
+  - `options` / `multiOptions` değerleri, boolean / number / string tipleri,
+  - `collection` ve `fixedCollection` iç yapıları (tek ya da çoklu değer),
+  - `resourceLocator` modu, `resourceMapper` eşleme modu, `filter` koşul yapısı.
+- Düğüm ayarları: `onError`, `retryOnFail`, `maxTries` (2–5), `waitBetweenTries` (≤5000).
+- Bağlantılar: bağlı çıkış sayısı ≤ düğümün çıkış sayısı. IF = 2, Switch = kural sayısı; `continueErrorOutput` +1 ekler.
+- Gereken kimlikleri de `displayOptions`'a göre hesaplıyor.
+
+**Sonuç:**
+- **19/19 düğüm geçerli · 19 bağlantı · 0 hata** → `workflow.json`'da parametre uyumsuzluğu bulunmadı, düzeltme gerekmedi.
+- Gereken kimlikler: Google Sheets OAuth2 (3 düğüm), Telegram API (2 düğüm).
+
+**Doğrulayıcının kendi hatası (bulundu, düzeltildi):**
+- İlk sürüm HTTP düğümü için `httpSslAuth`, Sheets için `googleApi` kimliklerini "gerekli" listeliyordu.
+- Bu kimlikler yalnızca belirli ayarlarda (SSL sertifikası açık / servis hesabı) gerekli. Kimlik koşulları da `displayOptions`'a göre değerlendirilecek şekilde düzeltildi.
+
+**Doğrulayıcının boşuna geçmediğinin kanıtı:** "0 hata" ilk çalıştırmada şüpheli bulundu. `workflow.json`'ın 10 bilinçli bozulmuş kopyası denendi ve **10'u da yakalandı**:
+- Sheets `operation: "getAll"`,
+- sayfalamada `maxRequest` yazım hatası,
+- `responseFormat: "html"`,
+- JSON yanıtta görünmeyen `outputPropertyName` (displayOptions),
+- `httpRequest` v4.9,
+- Code'da `jsCode` yerine `code`,
+- `onError: "continue"`,
+- IF'e 3. çıkış bağlanması,
+- string `maxRequests`,
+- `sheetName.mode: "gid"`.
+
+Bunlar `test/sema.test.js`'e kalıcı test olarak eklendi. Ağ yoksa bu testler atlanıyor.
+
+**Diğer:**
+- `package.json`'a `npm run dogrula` eklendi.
+- workflow.json'daki "Kurulum" notuna doğrulama satırı eklendi (`olustur.js` → yeniden üretildi).
+- `akis-aciklama.md`'ye "Şema doğrulaması" bölümü eklendi.
+
+**B testleri: 42/42** (31 akış + 11 şema).
+
+**Sınır:** Şema doğrulaması **yapıyı** kanıtlar, çalışma anını kanıtlamaz. Örneğin metin yanıtında `$response.body` içeriği hâlâ ancak gerçek bir n8n çalıştırmasıyla doğrulanabilir.

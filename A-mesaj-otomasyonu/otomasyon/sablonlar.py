@@ -39,6 +39,12 @@ METINLER: Dict[str, Dict[str, str]] = {
         "siparis_baslik": "Merhaba, {no} numaralı siparişiniz sistemimizde kayıtlı. Sipariş içeriği:",
         "siparis_toplam": "Toplam tutar: {tutar}",
         "siparis_kargo": "Kargo takip bilgisi hazır olduğunda size ayrıca iletilecektir.",
+        # --- çoklu niyet: sipariş kısmı yanıtlandı, kalan kısım temsilcide ---
+        "kismi_devir": "{konular} sorunuzu ilgili temsilcimize ilettik; en kısa sürede size dönüş yapılacaktır.",
+        "kismi_devir_genel": (
+            "Mesajınızın diğer kısmını ilgili temsilcimize ilettik; en kısa sürede size dönüş yapılacaktır."
+        ),
+        "ka_fiyat": "fiyat", "ka_urun-sorusu": "ürün", "ka_diger": "diğer",
         # --- ürün / fiyat / genel bilgi ---
         "selam": "Merhaba, sorunuz için teşekkür ederiz.",
         "urun_bulundu": "Kataloğumuzda sorunuzla eşleşen ürünler:",
@@ -84,6 +90,15 @@ METINLER: Dict[str, Dict[str, str]] = {
         "siparis_baslik": "Hello, your order #{no} has been verified. Items:",
         "siparis_toplam": "Total: {tutar}",
         "siparis_kargo": "We will send you the tracking details as soon as your shipment is ready.",
+        "kismi_devir": (
+            "Your {konular} question has been forwarded to one of our representatives, "
+            "who will get back to you as soon as possible."
+        ),
+        "kismi_devir_genel": (
+            "The rest of your message has been forwarded to one of our representatives, "
+            "who will get back to you as soon as possible."
+        ),
+        "ka_fiyat": "pricing", "ka_urun-sorusu": "product", "ka_diger": "other",
         "selam": "Hello, thank you for your question.",
         "urun_bulundu": "Products in our catalogue matching your question:",
         "urun_eslesmedi": "We could not find an exact match for this product in our catalogue.",
@@ -121,6 +136,16 @@ def tutar_bicimle(deger: float, dil: str = "tr") -> str:
     if dil != "en":
         metin = metin.replace(",", "_").replace(".", ",").replace("_", ".")
     return f"{metin} {PARA_BIRIMI}"
+
+
+def kismi_devir_metni(dil: str, konular: Sequence[str]) -> str:
+    """Çoklu niyette temsilciye bırakılan konular için tek cümle (ör. 'Fiyat sorunuzu … ilettik')."""
+    m = metinler(dil)
+    adlar = [m[f"ka_{k}"] for k in konular if f"ka_{k}" in m]
+    if not adlar:
+        return m["kismi_devir_genel"]
+    metin = m["ve"].join(adlar)
+    return m["kismi_devir"].format(konular=metin[0].upper() + metin[1:] if dil == "tr" else metin)
 
 
 def dogrulama_konulari(kural_adlari: Iterable[str]) -> Tuple[str, ...]:

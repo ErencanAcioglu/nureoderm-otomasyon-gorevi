@@ -6,13 +6,23 @@
 
 Tüm iş Claude Code ile yapıldı; promptlar `promptlar/` altında sırasıyla ve olduğu gibi duruyor.
 
+<p align="center">
+  <img src="docs/dashboard.png" alt="ozet.html dashboard: istatistik kartları, konu dağılımı, temsilci bekleyenler ve mesaj 8'in hibrit taslağı açık tablo" width="880">
+  <br><sub><b>Bölüm A — <code>ozet.html</code>.</b> 15 mesaj, 4 devir. Mesaj 8 açık: sahipliği doğrulanan sipariş bilgisi taslakta, fiyat sorusu temsilcide (hibrit taslak).</sub>
+</p>
+
+<p align="center">
+  <img src="docs/terminal-ozet.png" alt="Renkli terminal özeti, A ve B test sonuçları ve n8n şema doğrulaması" width="700">
+  <br><sub><b>Terminal.</b> <code>main.py</code> ANSI özeti · A: 74 test · B: 42 test · <code>workflow.json</code> n8n düğüm tanımlarına karşı 19/19 geçerli. Gerçek komut çıktılarından üretildi.</sub>
+</p>
+
 ## Zaman
 
 | | |
 |---|---|
 | Görev süresi | E-postanın alınmasından itibaren 3 saat |
 | Claude Code oturumu başlangıcı | **28.09.2026 11:59** (UTC+3), oturum kaydındaki ilk mesaj |
-| Son teslim commit'i | **28.09.2026 12:48** (UTC+3) |
+| Son teslim commit'i | **28.09.2026 13:04** (UTC+3) |
 
 Saatler oturum kaydından (`promptlar/ham-oturum-logu.md`) alındı. E-postanın alındığı saat bu kayıtta yok.
 
@@ -30,7 +40,8 @@ cd A-mesaj-otomasyonu && python3 -m unittest -v      # ya da: python3 -m pytest 
 CANLI_TEST=1 python3 -m unittest tests.test_api      # + gerçek DummyJSON'a karşı canlı test
 
 # Bölüm B — n8n akışı testleri ve canlı simülasyon
-cd B-n8n && npm test          # 31 test, gerçek site HTML'i ile (ağa çıkmaz)
+cd B-n8n && npm test          # 42 test (ilk çalıştırmada n8n düğüm tanımları indirilir, ~9 MB)
+npm run dogrula               # workflow.json → n8n-nodes-base@2.15.1 tanımlarına karşı şema doğrulaması
 npm run canli                 # gerçek siteyi 20 sayfa gezen uçtan uca simülasyon
 npm run olustur               # kod/*.js → workflow.json (Code düğümlerini değiştirdikten sonra)
 ```
@@ -57,13 +68,15 @@ cevap taslağı ve notlar açılır.
 │   │   ├── urun_arama.py          bonus: ürün arama + alaka filtresi
 │   │   ├── sablonlar.py           müşteriye giden tüm metinler (TR/EN)
 │   │   └── ozet.py                ANSI terminal özeti + HTML dashboard
-│   └── tests/                     69 test (unittest)
+│   └── tests/                     74 test (unittest)
 ├── B-n8n/
 │   ├── workflow.json              n8n'e import edilebilir akış (19 düğüm)
 │   ├── akis-aciklama.md           adım adım akış · başlangıç şablonu · değişiklikler
 │   ├── kod/                       Code düğümlerinin kaynağı (workflow.json'a gömülür)
 │   ├── araclar/olustur.js         workflow.json üreticisi
-│   └── test/                      31 test + canlı simülasyon + gerçek site HTML fixture'ları
+│   ├── araclar/sema-dogrula.js    n8n kurmadan, gerçek düğüm tanımlarına karşı şema doğrulaması
+│   └── test/                      42 test + canlı simülasyon + gerçek site HTML fixture'ları
+├── docs/                          README görselleri (dashboard, terminal)
 └── promptlar/
     ├── A-claude-code.md           A bölümü promptları + her adımda yapılanlar
     ├── B-n8n.md                   B bölümü promptları + mimari kararlar
@@ -95,6 +108,11 @@ sipariş sorgusu, ürün arama, taslak) → politika denetimi → `talepler.json
 - **Otomatik devir:** Güven < 0.5 ya da **çoklu niyet** varsa mesaj devredilir. Çoklu niyet: ikinci
   konu puanı ≥ 2 ve kazanan puanın ≥ %50'si. Mesaj 8 (fiyat + sipariş) bu yüzden devredilir;
   "Nemlendirici krem ne kadar?" ise tek bir zayıf ürün adı içerdiği için devredilmez.
+- **Hibrit taslak (çoklu niyet):** Devredilen bir mesajda sipariş sahipliği doğrulanmışsa sipariş kısmı yine
+  yanıtlanır, yanıtlanamayan kısım açıkça temsilciye bırakılır. Mesaj 8: `4 numaralı siparişiniz… Sports
+  Sneakers Off White Red × 3, Dior J'adore × 4, Toplam tutar: 689,93 USD … Fiyat sorunuzu ilgili temsilcimize
+  ilettik`. Böylece brief'teki "sahip eşleşiyorsa ürün adları + toplam tutar" kuralı devredilen mesajda da
+  karşılanır. Sahiplik eşleşmezse hibrit taslak **üretilmez**, güvenlik davranışı aynı kalır.
 - **Sipariş sorgusu:** `/carts/{id}` ile sipariş çekilir.
   - Sahiplik doğrulanırsa taslakta ürün × adet ve toplam tutar yer alır (ör. mesaj 2).
   - Sipariş bulunamazsa (404) nazik bir uyarı üretilir, `devret: false` (mesaj 3).
@@ -116,6 +134,17 @@ Akışın ayrıntısı, şablondan yapılan değişiklikler ve kurulum: [`B-n8n/
 | Tarih damgalı tablo | **Google Sheets:** `fiyat_gecmisi` (append) + `son_durum` (ürün kimliğiyle upsert) |
 | Değişiklik tespiti + bildirim | Code (kuruş hassasiyetinde) → Switch: İndirim Alarmı / Fiyat Artışı / Yeni Ürün → dal başına tek özet mesaj → Telegram |
 | Hata dalı | HTTP hata çıkışı (3 deneme sonrası), 0/eksik ürün doğrulaması, Sheets okuma hatası, Error Trigger → Acil Uyarı. Hata durumunda tabloya hiçbir şey yazılmaz. |
+
+**Şema doğrulaması (n8n kurmadan):** `npm run dogrula`, `workflow.json`'ı n8n editörünün kullandığı gerçek
+düğüm tanımlarına (`n8n-nodes-base@2.15.1` › `dist/types/nodes.json`) karşı denetler:
+- Düğüm tipleri ve sürümler.
+- Tüm parametre adları.
+- Seçenek değerleri.
+- `displayOptions` görünürlük kuralları (görünmeyen parametreyi n8n sessizce yok sayar).
+- İç içe koleksiyonlar.
+- Bağlantılardaki çıkış sayıları.
+
+Sonuç **19/19 düğüm geçerli, 0 hata**; düzeltme gerekmedi. Doğrulayıcının gerçekten hata yakaladığı 10 bilinçli bozma testiyle kanıtlandı (ör. `operation: "getAll"`, `maxRequest` yazım hatası, JSON yanıtta görünmeyen `outputPropertyName`, olmayan `typeVersion`, IF'e 3. çıkış).
 
 **Canlı simülasyon (n8n olmadan, gerçek site):**
 - Sayfalama 20 istekte kendiliğinden durdu.
@@ -172,10 +201,12 @@ Akışın ayrıntısı, şablondan yapılan değişiklikler ve kurulum: [`B-n8n/
   "Red Lipstick" döndürüyordu; ikisi de eleniyor. Elenenler temsilci notunda görünür.
 - **Eksik veri koruması (B):** Site bildirdiği ürün sayısının %90'ından azı ayrıştırılırsa veri tabloya
   yazılmaz, acil uyarı gider. Böylece yarım bir tarama ertesi gün sahte "yeni ürün" alarmlarına yol açmaz.
-- **Test kapsamı: toplam 100 test.**
-  - A: 69 test (68 çevrimdışı + 1 canlı API testi, `CANLI_TEST=1` ile).
-  - B: 31 test.
-  - Kritik kurallar ayrıca **mutasyon kontrolüyle** doğrulandı: kod bilerek bozulup testlerin yakaladığı görüldü (sahiplik kontrolü, politika denetimi, alaka filtresi, dil algılama).
+- **n8n şema doğrulayıcısı:** n8n kurmadan, n8n'in kendi düğüm tanımlarıyla `workflow.json`'ın import
+  edilebilirliğini kanıtlar (yukarıda).
+- **Test kapsamı: toplam 116 test.**
+  - A: 74 test (73 çevrimdışı + 1 canlı API testi, `CANLI_TEST=1` ile).
+  - B: 42 test (31 akış + 11 şema doğrulama).
+  - Kritik kurallar ayrıca **mutasyon kontrolüyle** doğrulandı: kod bilerek bozulup testlerin yakaladığı görüldü (sahiplik kontrolü, politika denetimi, alaka filtresi, dil algılama, şema doğrulayıcı).
   - Birim testleri ağa çıkmaz; sahte istemciler gerçek API yanıtlarından alınmış verilerle çalışır.
 
 ## Nerede takıldım, neyi nasıl çözdüm
@@ -188,6 +219,15 @@ Akışın ayrıntısı, şablondan yapılan değişiklikler ve kurulum: [`B-n8n/
   silmeyecekti. Harfe duyarsız bir filtreyle geçmiş yeniden yazıldı ve `--force-with-lease` ile gönderildi.
 - **Testin yakaladığı hata (B):** `Number('') === 0` olduğu için Sheets'teki boş fiyat hücresi önceki fiyat
   $0 sayılıyor ve sahte bir "Fiyat Artışı" alarmı üretiyordu. Düzeltildi.
+- **Son denetimde bulunan uyum açığı:** Mesaj 8'de sipariş sahipliği doğrulanmasına rağmen, çoklu niyet
+  nedeniyle devredildiği için taslakta sipariş bilgisi yoktu. Brief'e göre olması gerekiyordu. Hibrit taslakla
+  kapatıldı.
+- **Testin yakaladığı hata (A):** İngilizce fiyat sorusu ("price" + "how much") tek kural sayıldığı için
+  Türkçe karşılığından (fiyat + ne kadar = iki kural) daha düşük puan alıyor ve çoklu niyet eşiğine
+  ulaşmıyordu. İngilizce kural ikiye ayrıldı; 15 mesajın sonuçları değişmedi.
+- **Doğrulayıcının kendi hatası:** İlk sürüm HTTP düğümü için `httpSslAuth` kimliğini "gerekli" gösteriyordu.
+  Bu kimlik yalnızca SSL sertifikası seçeneği açıkken gerekli; kimlik koşulları da `displayOptions`'a göre
+  değerlendirilecek şekilde düzeltildi.
 - **Yanlış alarmlar:**
   - Bir çıktıda bir paragraf eksik görünüyordu. Sebep, grep filtremin "Ü" ile başlayan satırı gizlemesiydi; kodda hata yoktu.
   - Mutasyon betiğinde test modülü fonksiyonu mutasyonlu haldeyken import ettiği için bir sahte hata görüldü.
@@ -197,8 +237,10 @@ Akışın ayrıntısı, şablondan yapılan değişiklikler ve kurulum: [`B-n8n/
 
 - **n8n akışı canlı çalıştırılmadı** (görev gerektirmiyor). Code düğümleri n8n'in `$input` / `$()`
   arayüzünü taklit eden bir kum havuzunda, gerçek site HTML'iyle test edildi. HTTP düğümünün sayfalama
-  davranışı Node.js'te aynı kurallarla taklit edildi ama gerçek n8n'de doğrulanmadı; import sonrası tek
-  bir manuel çalıştırma önerilir. Ekran görüntüsü yok.
+  davranışı Node.js'te aynı kurallarla taklit edildi. `workflow.json`'ın **yapısı** n8n'in gerçek düğüm
+  tanımlarına karşı doğrulandı (19/19). Doğrulanamayan tek kısım çalışma anı davranışı (ör. metin yanıtında
+  `$response.body` içeriği); import sonrası tek bir manuel çalıştırma önerilir. n8n ekran görüntüsü yok;
+  `docs/` altındaki görseller A'nın dashboard'u ve terminal çıktısıdır.
 - n8n'de Error Trigger'ın çalışması için akışın *Workflow Settings → Error workflow* olarak seçilmesi gerekir.
   Siteden kaldırılan ürünler için bildirim yok.
 - DummyJSON para birimi vermediği için tutarlar **USD** varsayıldı. API kargo durumu içermediği için taslakta

@@ -445,3 +445,117 @@ Bu adımı tamamladıktan sonra son commit hash'ini ve reponun genel durum özet
 **Son kontroller:**
 - Testler: A `unittest` 69 (68 geçti + 1 atlandı), `pytest` 68 geçti + 1 atlandı, canlı API testi geçti; B 31/31.
 - `__pycache__` / `.pytest_cache` temizlendi; `git status --ignored` yalnızca bilerek hariç tutulan `case-brief.md`'yi gösteriyor.
+
+---
+
+## Prompt 10 — Son kabul ve denetim turu (kod değişikliği yok)
+
+```text
+Eline sağlık, süreci ve logları harika toparlamışsın. Projeyi tamamen kapatıp teslim etmeden önce son bir kabul ve denetim turu yapalım; hem içimiz tamamen rahat etsin hem de vaka değerlendiricisine karşı sıfır açık kalsın.
+
+Şu üç maddeyi sırasıyla inceleyip masaya yatıralım:
+
+1. Case Brief ve Bonus Karşılaştırması:
+   - İlk promptta verdiğim vaka metnini (case-brief) ve tüm isterleri son bir kez baştan sona tara.
+   - Bölüm A ve Bölüm B'deki tüm zorunlu maddeler ile bonus gereksinimlerin (DummyJSON ürün arama, n8n canlı çalıştırma/simülasyon, HTML dashboard vb.) eksiksiz karşılandığından emin miyiz? Gözden kaçan tek bir detay bile var mı?
+
+2. Aldığımız İnisiyatiflerin Değerlendirmesi:
+   - Gerçek çalışma saatinin (11:59 - 12:48) dürüstçe yazılması ve değerlendirici e-postasının loglarda maskelenmesi çok yerinde olmuş.
+   - IDOR / enumeration koruması, şablon #1952 (404) yerine #4640 seçimi, ürün ID bazlı diff motoru ve 6. mesajdaki İngilizce dil tespiti kararlarımızı değerlendirici gözüyle kısaca özetle.
+
+3. Yeni İnisiyatif Geliştirme Analizi & Çıktıları:
+   - Sistemi bir adım daha ileri taşıyabilecek 2-3 yeni mühendislik inisiyatifi/özelliği öner.
+   - Bu önerilerin ne getireceğini analiz et ve bunları koda eklemeden önce çıktılarını/taslaklarını (örneğin rate limiting, circuit breaker, webhook tetikleyicisi veya loglama optimizasyonu gibi somut mock/çıktı örnekleriyle) burada ekrana bas.
+   - Çıktılara bakalım; uygun görürsek koda ekleme kararını birlikte veririz.
+
+Kodu veya repoyu değiştirmeden önce analiz ve çıktıları konsolda düzenli bir rapor olarak sun, bekliyorum.
+```
+
+### Yapılanlar (Claude)
+
+İstendiği gibi repoda hiçbir şey değiştirilmedi. Yalnızca okuma yapıldı: `talepler.json`, commit saatleri, `/carts/4`.
+
+**Bulgular:**
+- **Uyum açığı (A):**
+  - Brief: "sipariş sahibi eşleşiyorsa ürün adları ve toplam tutarla taslak".
+  - Mesaj 8'de sahiplik doğrulanmıştı (sipariş 4). Ama çoklu niyet nedeniyle devredildiği için taslak yalnızca "temsilcimize iletildi" diyordu, sipariş bilgisi yoktu.
+- **Eksik bonus (B):** n8n'i çalıştırıp ekran görüntüsü alma yapılmadı (kullanıcı kararı). Node.js simülasyonu bunun yerini tutmaz; README'de bu açıkça yazılı.
+- **Doğrulanmamış risk (B):** `workflow.json`'ın gerçek n8n'e import edilebilirliği hiç sınanmamıştı. Özellikle HTTP sayfalama alan adları, `$response.body` ve Sheets `operation: "read"`.
+- **Küçük tutarsızlıklar:**
+  - README bitiş saati 12:48 yazıyordu, son commit'in gerçek saati 12:49:05.
+  - Ham log ve prompt kayıtları bu adımı içermiyordu.
+
+**Önerilen inisiyatifler** (çıktıları elle hazırlanmış taslak olarak gösterildi; sipariş 4 içeriği gerçek API'den):
+1. Çoklu niyette hibrit taslak: uyum açığını kapatır.
+2. `workflow.json`'ı n8n kurmadan, n8n'in gerçek düğüm tanımlarına karşı doğrulamak.
+3. Maskelenmiş karar kaydı (denetim izi).
+
+Rate limiting / circuit breaker ve webhook tetikleyici bu ölçekte fayda getirmeyeceği için önerilmedi.
+
+---
+
+## Prompt 11 — Hibrit taslak, n8n şema doğrulaması, ekran görüntüleri, final
+
+> Bu prompt her iki bölümü kapsıyor; B'ye ait ayrıntılar `B-n8n.md` › Prompt 4'te.
+
+```text
+Mükemmel bir denetim ve analiz olmuş, eline sağlık. 
+
+Kararımız şu:
+1. Öneri 1'i (Mesaj 8 Kısmi Yanıt) kesinlikle uyguluyoruz: Çoklu niyet olsa bile sahiplik doğrulandığı için sipariş detayları (ürünler + tutar) taslakta yer almalı, fiyat sorusu ise temsilciye bırakıldığını belirten hibrit taslak üretilmeli. İlgili testleri güncelle/ekle.
+2. Öneri 2'yi (n8n Şema Doğrulama) uyguluyoruz: 'B-n8n/araclar/sema-dogrula.js' ile n8n kurmadan parametre ve düğüm tiplerini doğrula; varsa parametre uyumsuzluğunu 'workflow.json' içinde düzelt ve doğrulamayı kanıtla.
+3. Görselleri ekliyoruz: 'docs/' altına 'ozet.html' dashboard ekran görüntüsünü ('docs/dashboard.png') ve renkli terminal özetinin/test çıktısının ekran görüntüsünü ('docs/terminal-ozet.png') ekleyip 'README.md' içerisine estetik şekilde yerleştir.
+4. Küçük Düzeltmeler: README'deki bitiş saatini gerçek commit saatine (12:49 veya güncel son push saati) göre güncelle; ham logu ve prompt kayıtlarını bu son denetim adımıyla senkronize et.
+
+Tüm bu geliştirmeleri ve testleri tamamlayıp:
+- Yalnızca ErencanAcioglu kimliğiyle, imzasız son commit'i at ve pushla:
+  git add . && git commit -m "feat(final): refine partial response for multi-intent, validate n8n schema and add screenshots"
+  git push origin main
+
+Son commit hash'ini, test durumunu ve görsellerin README'deki yansımasını özetle.
+```
+
+### Yapılanlar (Claude)
+
+**1. Hibrit taslak (A)**
+- `isleyici._siparis_durumu`: Mesaj çoklu niyet ya da düşük güven nedeniyle devredilse bile tek sipariş sorgusu doğrulanmışsa sipariş bilgisi (ürün × adet + toplam) taslağa girer. Arkasına kalan konu için tek cümle eklenir: "Fiyat sorunuzu ilgili temsilcimize ilettik…".
+  - Sipariş bulunamazsa "bulunamadı" metni + aynı cümle.
+  - Not alanına "Hibrit taslak: … yanıtlanmayan kısım (fiyat) temsilcide" yazılır.
+- **Güvenlik davranışı değişmedi:** sahiplik eşleşmezse hibrit taslak üretilmez; birden fazla sipariş varsa nötr devir kalır.
+- `sablonlar.py`: `kismi_devir` TR/EN metinleri + `kismi_devir_metni()`.
+- Mesaj 8 sonucu, denetim raporundaki taslakla birebir aynı:
+  ```
+  Merhaba, 4 numaralı siparişiniz sistemimizde kayıtlı. Sipariş içeriği:
+  • Sports Sneakers Off White Red × 3
+  • Dior J'adore × 4
+  Toplam tutar: 689,93 USD
+  Kargo takip bilgisi hazır olduğunda size ayrıca iletilecektir.
+  Fiyat sorunuzu ilgili temsilcimize ilettik; en kısa sürede size dönüş yapılacaktır.
+  ```
+- **Testin yakaladığı sınıflandırıcı açığı:** Yeni İngilizce hibrit testi ("How much is the price? Where is my order #4?") başarısız oldu.
+  - Sebep hibrit mantığı değil: İngilizce "price" ve "how much" tek kural olduğu için fiyat puanı 2 kalıyordu. Türkçede "fiyat" ve "ne kadar" iki ayrı kural, puan 4.
+  - Bu yüzden eşik (%50) aşılmıyor, çoklu niyet tespit edilmiyordu.
+  - İngilizce kural ikiye ayrıldı; 15 mesajın dağılımı değişmedi.
+- Sahte istemcideki sipariş 4 adetleri gerçek API ile eşitlendi (3 ve 4).
+- **A testleri: 74** (73 geçti + 1 canlı atlandı). 5 yeni test: TR hibrit, EN hibrit, bulunamayan + çoklu niyet, yetkisiz + çoklu niyette hibrit yok, `kismi_devir_metni`.
+
+**2. n8n şema doğrulaması (B):** ayrıntılar `B-n8n.md` › Prompt 4.
+- Sonuç 19/19 düğüm geçerli, 0 hata; `workflow.json`'da düzeltme gerekmedi.
+- 10 bilinçli bozmanın hepsi yakalandı. B testleri: 42.
+
+**3. Görseller (`docs/`)**
+- `dashboard.png`: `ozet.html` headless Chrome ile çekildi (1280 px, 2x).
+  - Mesaj 8'in hibrit taslağı görünsün diye repo dosyası değiştirilmeden, geçici bir kopyada 8. satır açıldı.
+  - Görüntü 1600 px genişliğe indirildi.
+- `terminal-ozet.png`: gerçek komut çıktılarından üretildi.
+  - Komutlar: `main.py` (ANSI renkleri `script` ile sahte TTY'de yakalandı), `python3 -m unittest`, `npm test`, `npm run dogrula`.
+  - ANSI → HTML dönüştürülüp headless Chrome ile çekildi.
+  - İlk kırpma denemesi sol kenarı kesti (`sips --cropOffset` ofseti köşeden değil); kırpmak yerine pencere boyutu içeriğe göre ayarlanarak yeniden çekildi.
+- README'nin başına iki görsel ortalanmış, açıklamalı olarak eklendi.
+
+**4. Senkronizasyon**
+- README: bitiş saati son commit saatine göre güncellendi, test sayıları (116), hibrit taslak, şema doğrulaması, "nerede takıldım" (3 yeni madde) ve sınırlar güncellendi.
+- `akis-aciklama.md`: şema doğrulaması bölümü eklendi.
+- Ham oturum logu commit'ten hemen önce yeniden üretildi.
+
+**Son test durumu:** A 74 (73 geçti, 1 canlı atlandı; canlı ayrıca geçti) · B 42/42 · şema 19/19 · canlı n8n simülasyonu başarılı.

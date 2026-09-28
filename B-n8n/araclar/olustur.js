@@ -105,6 +105,7 @@ const nodes = [
     '- Telegram: kimlik bilgisi + `TELEGRAM_CHAT_ID`',
     '- Error Trigger: Workflow Settings → Error workflow → bu akış (ya da ayrı hata akışı)',
     '- Canlı çalıştırılmadı; Code düğümleri Node.js ile gerçek site HTML\'i üzerinde test edildi (B-n8n/test).',
+    '- Tüm düğümler n8n-nodes-base@2.15.1 tanımlarına karşı doğrulandı: `npm run dogrula` → 19/19, 0 hata.',
   ].join('\n')),
 
   dugum(D.tetik, 'n8n-nodes-base.scheduleTrigger', 1.2, [0, 0], {

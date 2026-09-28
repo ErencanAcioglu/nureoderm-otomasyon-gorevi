@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from .api import DummyJSONIstemcisi, SepetIstemcisi, SorguDurumu, dogrula, siparis_bilgi_metni
 from .metin import dil_tespit, normalize
-from .sablonlar import DILLER, bilgi_taslagi, dogrulama_konulari, metinler
+from .sablonlar import DILLER, bilgi_taslagi, dogrulama_konulari, kismi_devir_metni, metinler
 from .siniflandirici import (
     DUSUK_GUVEN_ESIGI,
     ETIKET_SPAM,
@@ -152,8 +152,11 @@ def _urun_istemcisi() -> UrunAramaIstemcisi:
 
 
 def _siparis_durumu(talep: Talep, musteri_id: Any, numaralar: Sequence[int],
-                    istemci: SepetIstemcisi) -> None:
-    """siparis-durumu mesajı için sepeti çeker, sahipliği doğrular, taslak ve notu doldurur."""
+                    istemci: SepetIstemcisi, devir_konulari: Sequence[str] = ()) -> None:
+    """siparis-durumu mesajı için sepeti çeker, sahipliği doğrular, taslak ve notu doldurur.
+
+    `devir_konulari`: mesajda sipariş dışında kalan ve temsilciye bırakılan konular (çoklu niyet).
+    """
     m = metinler(talep.dil)
     if not numaralar:
         if not talep.devret:
@@ -191,8 +194,8 @@ def _siparis_durumu(talep: Talep, musteri_id: Any, numaralar: Sequence[int],
         for q in sorgular
     ]
 
-    # 3) Başka bir sebeple zaten devredildiyse (çoklu niyet vb.) taslak nötr kalır.
-    if talep.devret or len(sorgular) > 1:
+    # 3) Birden fazla sipariş numarası: hangi siparişin sorulduğu belirsiz → nötr devir.
+    if len(sorgular) > 1:
         if not talep.devret:
             talep.devret = True
             talep.cevap_taslagi = m["devir"]
@@ -202,13 +205,20 @@ def _siparis_durumu(talep: Talep, musteri_id: Any, numaralar: Sequence[int],
 
     sorgu = sorgular[0]
     if sorgu.durum is SorguDurumu.BULUNAMADI:
-        talep.cevap_taslagi = m["siparis_bulunamadi"].format(no=no_metni)
+        taslak = m["siparis_bulunamadi"].format(no=no_metni)
         talep.notlar.append(f"Sipariş #{sorgu.sepet_id} sistemde bulunamadı (API: not found).")
-        return
+    else:
+        taslak = siparis_bilgi_metni(dogrula(sorgu.sepet, musteri_id), talep.dil)
+        talep.notlar.extend(dogrulama_notlari)
+        talep.notlar.append("API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli.")
 
-    talep.cevap_taslagi = siparis_bilgi_metni(dogrula(sorgu.sepet, musteri_id), talep.dil)
-    talep.notlar.extend(dogrulama_notlari)
-    talep.notlar.append("API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli.")
+    # 4) Hibrit taslak: mesaj başka bir sebeple devredildiyse (çoklu niyet / düşük güven) sahipliği
+    #    doğrulanmış sipariş kısmı yine yanıtlanır, yanıtlanamayan kısım açıkça temsilciye bırakılır.
+    if talep.devret:
+        taslak += "\n" + kismi_devir_metni(talep.dil, devir_konulari)
+        kalan = ", ".join(devir_konulari) or "belirsiz"
+        talep.notlar.append(f"Hibrit taslak: sipariş kısmı otomatik yanıtlandı; yanıtlanmayan kısım ({kalan}) temsilcide.")
+    talep.cevap_taslagi = taslak
 
 
 def _arama_notu(arama: AramaSonucu) -> str:
@@ -282,7 +292,7 @@ def isle(kayit: Mapping[str, Any], istemci: Optional[SepetIstemcisi] = None,
 
         if s.konu == "siparis-durumu":
             _siparis_durumu(talep, kayit.get("musteri_id"), s.siparis_numaralari,
-                            istemci or _sepet_istemcisi())
+                            istemci or _sepet_istemcisi(), rakipler)
         elif not nedenler:
             _bilgi_talebi(talep, s, kayit["mesaj"], urun_istemcisi or _urun_istemcisi())
 

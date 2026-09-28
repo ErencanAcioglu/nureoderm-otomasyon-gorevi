@@ -2,10 +2,13 @@
   "name": "nureoderm-n8n-fiyat-takip",
   "private": true,
   "description": "n8n laptop fiyat takip akışı: workflow.json üreticisi ve Code düğümü testleri (bağımlılık yok)",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "olustur": "node araclar/olustur.js",
     "test": "node --test test/*.test.js",
-    "canli": "node test/canli-kazima.js"
+    "canli": "node test/canli-kazima.js",
+    "dogrula": "node araclar/sema-dogrula.js"
   }
 }

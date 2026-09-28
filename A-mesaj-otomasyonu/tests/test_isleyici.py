@@ -78,6 +78,27 @@ class OtomatikDevirTesti(unittest.TestCase):
         self.assertTrue(t.devret)
         self.assertIn("Çoklu Niyet: siparis-durumu + fiyat", t.to_dict()["not"])
 
+    def test_coklu_niyette_hibrit_taslak(self):
+        # Brief: sahiplik eşleşiyorsa taslakta ürün adları ve toplam tutar olmalı — çoklu niyette de.
+        t = _isle(MESAJLAR[7])  # mesaj 8: musteri 4, sipariş 4 (userId 4) + güneş kremi fiyatı
+        self.assertTrue(t.devret)
+        for parca in ("4 numaralı siparişiniz", "Sports Sneakers Off White Red × 3", "Dior J'adore × 4",
+                      "Toplam tutar: 689,93 USD", "Fiyat sorunuzu ilgili temsilcimize ilettik"):
+            self.assertIn(parca, t.cevap_taslagi)
+        self.assertIn("Hibrit taslak", t.to_dict()["not"])
+        self.assertIn("yanıtlanmayan kısım (fiyat)", t.to_dict()["not"])
+
+    def test_coklu_niyette_bulunamayan_siparis(self):
+        t = _isle(_kayit("Güneş kreminin fiyatı ne kadar? 9999 numaralı siparişim ne zaman gelir?", musteri_id=4))
+        self.assertTrue(t.devret)
+        self.assertTrue(t.cevap_taslagi.startswith(SIPARIS_BULUNAMADI_SABLONU.format(no=9999)))
+        self.assertIn("Fiyat sorunuzu", t.cevap_taslagi)
+
+    def test_coklu_niyette_yetkisiz_sipariste_hibrit_yok(self):
+        t = _isle(_kayit("Güneş kreminin fiyatı ne kadar? 12 numaralı siparişim ne zaman gelir?", musteri_id=4))
+        self.assertEqual(t.cevap_taslagi, SIPARIS_BULUNAMADI_SABLONU.format(no=12))
+        self.assertNotIn("Hibrit", t.to_dict()["not"])
+
     def test_zayif_urun_adi_coklu_niyet_sayilmaz(self):
         t = _isle(MESAJLAR[9])  # mesaj 10: "Nemlendirici krem ne kadar?"
         self.assertFalse(t.devret)

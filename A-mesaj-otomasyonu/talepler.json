@@ -52,8 +52,8 @@
     "id": 8,
     "konu": "siparis-durumu",
     "devret": true,
-    "cevap_taslagi": "Merhaba, mesajınız için teşekkür ederiz. Talebiniz ilgili temsilcimize iletildi; en kısa sürede size dönüş yapılacaktır.",
-    "not": "Otomatik devir — Çoklu Niyet: siparis-durumu + fiyat | Sipariş #4: sahiplik doğrulandı (userId = musteri_id)."
+    "cevap_taslagi": "Merhaba, 4 numaralı siparişiniz sistemimizde kayıtlı. Sipariş içeriği:\n• Sports Sneakers Off White Red × 3\n• Dior J'adore × 4\nToplam tutar: 689,93 USD\nKargo takip bilgisi hazır olduğunda size ayrıca iletilecektir.\nFiyat sorunuzu ilgili temsilcimize ilettik; en kısa sürede size dönüş yapılacaktır.",
+    "not": "Otomatik devir — Çoklu Niyet: siparis-durumu + fiyat | Sipariş #4: sahiplik doğrulandı (userId = musteri_id). | API kargo durumu içermiyor; kargo takip bilgisi temsilci tarafından eklenmeli. | Hibrit taslak: sipariş kısmı otomatik yanıtlandı; yanıtlanmayan kısım (fiyat) temsilcide."
   },
   {
     "id": 9,

@@ -82,12 +82,34 @@ Code düğümlerinin kaynağı `kod/*.js`; `araclar/olustur.js` bunları `workfl
 
 ```bash
 cd B-n8n
-node araclar/olustur.js       # kod/*.js → workflow.json
-node --test test/*.test.js    # 31 birim testi (gerçek site HTML'iyle, ağsız)
-node test/canli-kazima.js     # canlı uçtan uca simülasyon
+node araclar/olustur.js       # kod/*.js → workflow.json                        (npm run olustur)
+node --test test/*.test.js    # 42 test: 31 akış + 11 şema doğrulama             (npm test)
+node araclar/sema-dogrula.js  # n8n düğüm tanımlarına karşı şema doğrulaması       (npm run dogrula)
+node test/canli-kazima.js     # canlı uçtan uca simülasyon                         (npm run canli)
 ```
 
-- **Birim testleri (31):**
+- **Şema doğrulaması (n8n kurmadan):**
+  - `araclar/sema-dogrula.js`, n8n editörünün kullandığı gerçek düğüm tanımlarını (`n8n-nodes-base@2.15.1`
+    › `dist/types/nodes.json`) `npm pack` ile yalnızca dosya olarak indirir (~9 MB, kurulum yok, `.cache/`
+    gitignore'da).
+  - Denetlediği her şey:
+    - düğüm tipi ve `typeVersion`,
+    - her parametre adı,
+    - seçenek değerleri,
+    - boolean/number tipleri,
+    - `displayOptions` görünürlük kuralları (sürüm koşulları dahil),
+    - `collection` / `fixedCollection` iç yapıları,
+    - `resourceLocator` modu, `resourceMapper` eşleme modu, `filter` yapısı,
+    - `onError` / retry ayarları,
+    - bağlantılardaki çıkış sayıları.
+  - Kimlik bilgisi gereksinimleri de `displayOptions`'a göre hesaplanır.
+  - **Sonuç: 19/19 düğüm geçerli, 19 bağlantı, 0 hata** → `workflow.json`'da düzeltme gerekmedi.
+    Gereken kimlikler: Google Sheets OAuth2 ve Telegram API.
+  - Doğrulayıcının gerçekten hata yakaladığı 10 bilinçli bozmayla test edildi: Sheets `operation: "getAll"`,
+    `maxRequest` yazım hatası, `responseFormat: "html"`, JSON yanıtta görünmeyen `outputPropertyName`,
+    `httpRequest` v4.9, Code'da `jsCode` yerine `code`, `onError: "continue"`, IF'e 3. çıkış,
+    string `maxRequests`, `sheetName.mode: "gid"`. Hepsi yakalandı.
+- **Akış birim testleri (31):**
   - Ayrıştırma: gerçek sayfa 1, sayfa 20 ve boş sayfa 21 HTML'i.
   - Fiyat tip güvenliği; "117 ürünün 9'u" eksik veri senaryosu; tekrar eden sayfa; bozuk fiyat.
   - Sayfalama bitiş ifadesi (sayfa 1 → devam, 20 → dur, 21 → dur).
@@ -105,10 +127,11 @@ node test/canli-kazima.js     # canlı uçtan uca simülasyon
 
 ## Sınırlar ve dürüst notlar
 
-- **Akış n8n'de canlı çalıştırılmadı** (görev gerektirmiyor). Code düğümleri n8n'in `$input` / `$()`
-  arayüzünü taklit eden bir kum havuzunda test edildi. HTTP sayfalama davranışı canlı simülasyonda
-  aynı kurallarla (aynı bitiş ifadesi, aynı sınır) taklit edildi, ancak gerçek n8n HTTP düğümüyle
-  doğrulanmadı. Import sonrası tek bir manuel çalıştırmayla doğrulanması önerilir.
+- **Akış n8n'de canlı çalıştırılmadı** (görev gerektirmiyor). `workflow.json`'ın **yapısı** n8n'in gerçek
+  düğüm tanımlarına karşı doğrulandı (19/19). Code düğümleri n8n'in `$input` / `$()` arayüzünü taklit eden
+  bir kum havuzunda test edildi. HTTP sayfalama davranışı canlı simülasyonda aynı kurallarla (aynı bitiş
+  ifadesi, aynı sınır) taklit edildi. Doğrulanamayan tek şey çalışma anı davranışı (ör. metin yanıtında
+  `$response.body`'nin içeriği); import sonrası tek bir manuel çalıştırmayla doğrulanması önerilir.
 - `$pageCount`'un ilk istekte `0` olduğu varsayıldı (n8n dokümantasyonundaki `{{ $pageCount + 1 }}`
   kalıbı). İlk istek parametresiz giderse site yine sayfa 1'i döner; ayrıştırıcı URL'ye göre tekrar
   ayıkladığı için veri bozulmaz, en fazla bir fazladan istek yapılır.

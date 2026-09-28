@@ -27,7 +27,7 @@
         -560
       ],
       "parameters": {
-        "content": "### Kurulum\n- Google Sheets: `GOOGLE_SHEET_ID` yerine tablo adresi; iki sayfa: `fiyat_gecmisi`, `son_durum` (başlık satırları akis-aciklama.md'de)\n- Telegram: kimlik bilgisi + `TELEGRAM_CHAT_ID`\n- Error Trigger: Workflow Settings → Error workflow → bu akış (ya da ayrı hata akışı)\n- Canlı çalıştırılmadı; Code düğümleri Node.js ile gerçek site HTML'i üzerinde test edildi (B-n8n/test).",
+        "content": "### Kurulum\n- Google Sheets: `GOOGLE_SHEET_ID` yerine tablo adresi; iki sayfa: `fiyat_gecmisi`, `son_durum` (başlık satırları akis-aciklama.md'de)\n- Telegram: kimlik bilgisi + `TELEGRAM_CHAT_ID`\n- Error Trigger: Workflow Settings → Error workflow → bu akış (ya da ayrı hata akışı)\n- Canlı çalıştırılmadı; Code düğümleri Node.js ile gerçek site HTML'i üzerinde test edildi (B-n8n/test).\n- Tüm düğümler n8n-nodes-base@2.15.1 tanımlarına karşı doğrulandı: `npm run dogrula` → 19/19, 0 hata.",
         "width": 520,
         "height": 260,
         "color": 5
