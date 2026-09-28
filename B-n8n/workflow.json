@@ -1,0 +1,866 @@
+{
+  "name": "Laptop Fiyat Takibi — webscraper.io (şablon #4640 uyarlaması)",
+  "nodes": [
+    {
+      "id": "6e1e3902-9a1a-6167-c0cf-b62a3fc5a2d8",
+      "name": "Not: Genel Bakış",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -560
+      ],
+      "parameters": {
+        "content": "## Laptop Fiyat Takibi (webscraper.io)\n\n**Başlangıç şablonu:** [#4640 — Competitor price monitoring with web scraping, Google Sheets & Telegram](https://n8n.io/workflows/4640)\n\n1. **Her gün 09:00** (Europe/Istanbul, cron `0 9 * * *`)\n2. **Sayfalama:** `?page=1,2,…` — ürün kartı ya da \"next\" bağlantısı kalmayınca durur; en fazla 50 sayfa\n3. **Ayrıştırma:** ad, açıklama, fiyat (`$416.99` → `416.99` sayı), yorum sayısı, URL, `scraped_at`\n4. **Tablo:** Google Sheets `fiyat_gecmisi` (tarih damgalı, append) + `son_durum` (ürün başına son fiyat)\n5. **Değişiklik tespiti:** ürün kimliğine göre (`/product/{id}`) → İndirim / Artış / Yeni → Telegram\n6. **Hata dalı:** HTTP hatası, 0/eksik ürün, Sheets okuma hatası, beklenmeyen çöküş → Acil uyarı",
+        "width": 640,
+        "height": 400,
+        "color": 7
+      }
+    },
+    {
+      "id": "89c411fd-055f-b4be-5144-94bb1bb56ada",
+      "name": "Not: Kurulum",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        600,
+        -560
+      ],
+      "parameters": {
+        "content": "### Kurulum\n- Google Sheets: `GOOGLE_SHEET_ID` yerine tablo adresi; iki sayfa: `fiyat_gecmisi`, `son_durum` (başlık satırları akis-aciklama.md'de)\n- Telegram: kimlik bilgisi + `TELEGRAM_CHAT_ID`\n- Error Trigger: Workflow Settings → Error workflow → bu akış (ya da ayrı hata akışı)\n- Canlı çalıştırılmadı; Code düğümleri Node.js ile gerçek site HTML'i üzerinde test edildi (B-n8n/test).",
+        "width": 520,
+        "height": 260,
+        "color": 5
+      }
+    },
+    {
+      "id": "ed3f7156-a32d-2379-e1b2-b19663d3ffbb",
+      "name": "Her Gün 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "7636a250-0bac-4344-f343-c8df0789ceaf",
+      "name": "Laptop Sayfalarını Çek (Sayfalama)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "url": "https://webscraper.io/test-sites/e-commerce/static/computers/laptops",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "nureoderm-fiyat-takip/1.0 (+n8n)"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "html"
+            }
+          },
+          "pagination": {
+            "pagination": {
+              "paginationMode": "updateAParameterInEachRequest",
+              "parameters": {
+                "parameters": [
+                  {
+                    "type": "qs",
+                    "name": "page",
+                    "value": "={{ $pageCount + 1 }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !String($response.body ?? '').includes('class=\"card thumbnail\"') || !String($response.body ?? '').includes('rel=\"next\"') }}",
+              "limitPagesFetched": true,
+              "maxRequests": 50,
+              "requestInterval": 300
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "6f22188c-ec9d-5911-7c03-efc28da9cbc4",
+      "name": "Ürünleri Ayrıştır ve Temizle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// n8n Code düğümü: \"Ürünleri Ayrıştır ve Temizle\" (Run Once for All Items)\n// Girdi : HTTP Request (sayfalama) çıktısı — her sayfa bir item, HTML metni `html` alanında.\n// Çıktı : TEK item — tip güvenli ürün listesi + veri doğrulama istatistikleri.\n//         `veri_gecerli: false` ise akış hata dalına gider; tabloya hiçbir şey yazılmaz.\n\nconst KAYNAK = 'https://webscraper.io';\nconst MIN_KAPSAMA = 0.9; // sitenin bildirdiği ürün sayısının en az %90'ı ayrıştırılmalı\n\nconst scrapedAt = new Date().toISOString();\n\nfunction htmlCoz(metin) {\n  return String(metin)\n    .replace(/&quot;/g, '\"').replace(/&#0?39;/g, \"'\").replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>').replace(/&amp;/g, '&')\n    .replace(/\\s+/g, ' ').trim();\n}\n\nfunction nitelik(etiket, ad) {\n  const eslesme = etiket.match(new RegExp(`\\\\b${ad}=\"([^\"]*)\"`));\n  return eslesme ? htmlCoz(eslesme[1]) : null;\n}\n\n// \"$416.99\" → 416.99 (number). Sayıya çevrilemeyen fiyat null döner, asla NaN değil.\nfunction fiyatCoz(ham) {\n  if (ham === undefined || ham === null) return null;\n  const sayi = parseFloat(String(ham).replace(/[^0-9.]/g, ''));\n  return Number.isFinite(sayi) ? sayi : null;\n}\n\nfunction kartlariAyristir(html, sayfa) {\n  return html.split('class=\"card thumbnail\"').slice(1).map((kart) => {\n    const baslikEtiketi = (kart.match(/<a\\b[^>]*class=\"title\"[^>]*>/) || [''])[0];\n    const yol = nitelik(baslikEtiketi, 'href');\n    const fiyatHam = (kart.match(/itemprop=\"price\"[^>]*>([^<]*)</) || [])[1];\n    const aciklama = (kart.match(/class=\"description[^\"]*\"[^>]*>([\\s\\S]*?)<\\/p>/) || [])[1];\n    const yorum = (kart.match(/itemprop=\"reviewCount\"[^>]*>\\s*(\\d+)/) || kart.match(/(\\d+)\\s+reviews?/) || [])[1];\n    const puan = (kart.match(/data-rating=\"(\\d+)\"/) || [])[1];\n    const urunId = yol ? (yol.match(/\\/product\\/(\\d+)/) || [])[1] : undefined;\n    return {\n      urun_id: urunId ? Number(urunId) : null,\n      // title niteliği tam adı taşır; bağlantı metni uzun adlarda \"...\" ile kısaltılabilir.\n      ad: nitelik(baslikEtiketi, 'title'),\n      aciklama: aciklama ? htmlCoz(aciklama) : null,\n      fiyat_ham: fiyatHam ? fiyatHam.trim() : null,\n      fiyat: fiyatCoz(fiyatHam),\n      yorum_sayisi: yorum !== undefined ? parseInt(yorum, 10) : null,\n      puan: puan !== undefined ? parseInt(puan, 10) : null,\n      url: yol ? (yol.startsWith('http') ? yol : KAYNAK + yol) : null,\n      sayfa,\n      scraped_at: scrapedAt,\n    };\n  });\n}\n\nconst sayfalar = $input.all().map((item, i) => ({\n  sayfa: i + 1,\n  html: String(item.json.html ?? item.json.data ?? ''),\n}));\n\nlet beklenenUrun = null;\nconst gorulen = new Set();\nconst urunler = [];\nconst uyarilar = [];\nlet gecersizFiyat = 0;\nlet tekrarEden = 0;\n\nfor (const { sayfa, html } of sayfalar) {\n  if (beklenenUrun === null) {\n    const sayac = html.match(/class=\"item-count\"[^>]*>\\s*(\\d+)\\s+items?/);\n    if (sayac) beklenenUrun = Number(sayac[1]);\n  }\n  for (const urun of kartlariAyristir(html, sayfa)) {\n    // Aynı ada sahip farklı ürünler var (ör. 8 farklı \"Dell Latitude 5480\"); anahtar ürün URL'si.\n    const anahtar = urun.url || `${urun.ad}|${urun.aciklama}|${urun.fiyat_ham}`;\n    if (gorulen.has(anahtar)) { tekrarEden++; continue; }\n    gorulen.add(anahtar);\n    if (typeof urun.fiyat !== 'number' || urun.urun_id === null || !urun.ad) {\n      gecersizFiyat++;\n      uyarilar.push(`Sayfa ${sayfa}: ayrıştırılamayan kart atlandı (ad=${urun.ad}, fiyat=${urun.fiyat_ham})`);\n      continue;\n    }\n    urunler.push(urun);\n  }\n}\n\nlet hataNedeni = null;\nif (urunler.length === 0) {\n  hataNedeni = 'Hiç ürün ayrıştırılamadı: site boş döndü, açılmadı ya da HTML yapısı değişti.';\n} else if (beklenenUrun && urunler.length < Math.floor(beklenenUrun * MIN_KAPSAMA)) {\n  hataNedeni = `Eksik veri: site ${beklenenUrun} ürün bildiriyor, yalnızca ${urunler.length} ürün ayrıştırıldı.`;\n}\nif (beklenenUrun && urunler.length !== beklenenUrun && hataNedeni === null) {\n  uyarilar.push(`Site ${beklenenUrun} ürün bildiriyor, ${urunler.length} ürün ayrıştırıldı.`);\n}\n\nreturn [{\n  json: {\n    run_id: scrapedAt,\n    scraped_at: scrapedAt,\n    kaynak: `${KAYNAK}/test-sites/e-commerce/static/computers/laptops`,\n    sayfa_sayisi: sayfalar.length,\n    beklenen_urun: beklenenUrun,\n    urun_sayisi: urunler.length,\n    gecersiz_fiyat: gecersizFiyat,\n    tekrar_eden: tekrarEden,\n    veri_gecerli: hataNedeni === null,\n    hata_nedeni: hataNedeni,\n    uyarilar,\n    urunler,\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "5ea024b0-1bb2-4a05-8a8c-fcdbf1d0c9d5",
+      "name": "Veri Geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        -100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9a59599f-412c-6a05-c725-7d8ddc870f98",
+              "leftValue": "={{ $json.veri_gecerli }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b56e59f7-f87e-dfe3-7aa3-9f4cd51004a4",
+      "name": "Önceki Durumu Oku (son_durum)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        960,
+        -200
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "son_durum"
+        },
+        "options": {}
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "8800c700-ad5c-d893-1b61-4d18335b4143",
+      "name": "Değişiklik Tespiti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -220
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// n8n Code düğümü: \"Değişiklik Tespiti\" (Run Once for All Items)\n// Girdi ($input) : Google Sheets \"son_durum\" satırları = bir önceki çalışmanın fiyatları.\n//                  Tablo boşsa (ilk çalışma) tek bir boş item gelir (alwaysOutputData).\n// Bugünkü veri   : \"Ürünleri Ayrıştır ve Temizle\" düğümünün çıktısı.\n// Çıktı          : Bugün görülen her ürün için bir item; `degisim` ∈ indirim | artis | yeni | degismedi.\n//\n// Karşılaştırma anahtarı ürün ADI DEĞİL, sitedeki ürün kimliğidir (/product/{id}):\n// sitede 117 ürün ama yalnızca 88 farklı ad var (ör. 8 farklı \"Dell Latitude 5480\").\n// Ada göre eşleştirme bu ürünleri birbirine karıştırıp sahte fiyat alarmı üretirdi.\n\nconst bugun = $('Ürünleri Ayrıştır ve Temizle').first().json;\n\n// Kayan nokta hatasına karşı kuruş (cent) cinsinden tam sayı karşılaştırması.\nconst kurus = (deger) => Math.round(Number(deger) * 100);\n\n// Sheets değerleri metin dönebilir → sayıya zorla. Boş hücre NaN sayılır:\n// Number('') === 0 olduğundan boş fiyat hücresi aksi halde \"$0 → $416.99\" sahte artış alarmı üretirdi.\nconst sayi = (deger) => (deger === null || deger === undefined || String(deger).trim() === ''\n  ? NaN : Number(deger));\n\nconst onceki = new Map();\nfor (const { json: satir } of $input.all()) {\n  const id = sayi(satir.urun_id);\n  const fiyat = sayi(satir.fiyat);\n  if (Number.isInteger(id) && id > 0 && Number.isFinite(fiyat) && fiyat > 0) {\n    onceki.set(id, { ...satir, fiyat });\n  }\n}\nconst ilkCalisma = onceki.size === 0;\n\nreturn bugun.urunler.map((urun) => {\n  const eski = onceki.get(urun.urun_id);\n  let degisim = 'yeni';\n  let oncekiFiyat = null;\n  let fark = null;\n  let farkYuzde = null;\n  if (eski) {\n    oncekiFiyat = eski.fiyat;\n    const farkKurus = kurus(urun.fiyat) - kurus(eski.fiyat);\n    fark = farkKurus / 100;\n    farkYuzde = oncekiFiyat > 0 ? Math.round((farkKurus / kurus(oncekiFiyat)) * 10000) / 100 : null;\n    degisim = farkKurus < 0 ? 'indirim' : farkKurus > 0 ? 'artis' : 'degismedi';\n  }\n  return {\n    json: {\n      ...urun,\n      degisim,\n      onceki_fiyat: oncekiFiyat,\n      fark,\n      fark_yuzde: farkYuzde,\n      ilk_calisma: ilkCalisma,\n      run_id: bugun.run_id,\n    },\n  };\n});\n"
+      }
+    },
+    {
+      "id": "cc8f84e4-598c-cbad-2f25-3086ad3cc1a5",
+      "name": "Fiyat Geçmişine Yaz (fiyat_gecmisi)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1480,
+        -460
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "fiyat_gecmisi"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "scraped_at": "={{ $json.scraped_at }}",
+            "urun_id": "={{ $json.urun_id }}",
+            "ad": "={{ $json.ad }}",
+            "aciklama": "={{ $json.aciklama }}",
+            "fiyat": "={{ $json.fiyat }}",
+            "onceki_fiyat": "={{ $json.onceki_fiyat }}",
+            "degisim": "={{ $json.degisim }}",
+            "fark": "={{ $json.fark }}",
+            "fark_yuzde": "={{ $json.fark_yuzde }}",
+            "yorum_sayisi": "={{ $json.yorum_sayisi }}",
+            "puan": "={{ $json.puan }}",
+            "url": "={{ $json.url }}",
+            "sayfa": "={{ $json.sayfa }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "scraped_at",
+              "displayName": "scraped_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "urun_id",
+              "displayName": "urun_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ad",
+              "displayName": "ad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "aciklama",
+              "displayName": "aciklama",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fiyat",
+              "displayName": "fiyat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "onceki_fiyat",
+              "displayName": "onceki_fiyat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "degisim",
+              "displayName": "degisim",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fark",
+              "displayName": "fark",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fark_yuzde",
+              "displayName": "fark_yuzde",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "yorum_sayisi",
+              "displayName": "yorum_sayisi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "puan",
+              "displayName": "puan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sayfa",
+              "displayName": "sayfa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "2830e1dd-88c8-75c7-5c06-b1a29b37000e",
+      "name": "Son Durumu Güncelle (son_durum)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1480,
+        -280
+      ],
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "son_durum"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "urun_id": "={{ $json.urun_id }}",
+            "ad": "={{ $json.ad }}",
+            "aciklama": "={{ $json.aciklama }}",
+            "fiyat": "={{ $json.fiyat }}",
+            "yorum_sayisi": "={{ $json.yorum_sayisi }}",
+            "url": "={{ $json.url }}",
+            "scraped_at": "={{ $json.scraped_at }}"
+          },
+          "matchingColumns": [
+            "urun_id"
+          ],
+          "schema": [
+            {
+              "id": "urun_id",
+              "displayName": "urun_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ad",
+              "displayName": "ad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "aciklama",
+              "displayName": "aciklama",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fiyat",
+              "displayName": "fiyat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "yorum_sayisi",
+              "displayName": "yorum_sayisi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "scraped_at",
+              "displayName": "scraped_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a596bb51-baa4-d55d-2649-2dad42cc4b90",
+      "name": "Değişim Türüne Göre Ayır",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1480,
+        -60
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "40ef2916-9b24-7043-1e8b-18bbf7616bc8",
+                    "leftValue": "={{ $json.degisim }}",
+                    "rightValue": "indirim",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "İndirim Alarmı"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1469f3e4-dc29-6315-8f62-f48078c28591",
+                    "leftValue": "={{ $json.degisim }}",
+                    "rightValue": "artis",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Fiyat Artışı"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9c779201-8c0b-0c4e-9587-76d550bebb25",
+                    "leftValue": "={{ $json.degisim }}",
+                    "rightValue": "yeni",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Yeni Ürün"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "512f0d50-ade6-43e5-70ca-f0a2ca5bde09",
+      "name": "İndirim Alarmı Mesajı",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        -220
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// n8n Code düğümü: Switch dalı için bildirim metni (Run Once for All Items)\n// Aynı kod üç dalda kullanılır; TUR değeri workflow.json üretilirken yerleştirilir.\n// Her dal TEK mesaj üretir (ürün başına mesaj yok → ilk çalışmada 117 mesajlık spam olmaz).\n\nconst TUR = 'indirim'; // indirim | artis | yeni\nconst BASLIKLAR = { indirim: '📉 İndirim Alarmı', artis: '📈 Fiyat Artışı', yeni: '🆕 Yeni Ürün' };\nconst EN_FAZLA_SATIR = 15;\nconst MESAJ_SINIRI = 4000; // Telegram tek mesaj sınırı 4096 karakter\n\nconst urunler = $input.all().map((item) => item.json);\nif (urunler.length === 0) return [];\n\nconst usd = (deger) => `$${Number(deger).toFixed(2)}`;\nconst isaretli = (deger) => `${deger > 0 ? '+' : ''}${deger}%`;\nconst zaman = new Date(urunler[0].scraped_at).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });\n\nlet satirlar;\nif (TUR === 'yeni' && urunler[0].ilk_calisma) {\n  satirlar = [\n    `İlk çalışma: ${urunler.length} ürün referans fiyat olarak kaydedildi.`,\n    'Bundan sonraki çalışmalarda yalnızca fiyat değişiklikleri ve yeni ürünler bildirilecek.',\n  ];\n} else {\n  const sirali = [...urunler].sort((a, b) => (TUR === 'yeni'\n    ? a.fiyat - b.fiyat\n    : Math.abs(b.fark_yuzde ?? 0) - Math.abs(a.fark_yuzde ?? 0)));\n  satirlar = sirali.slice(0, EN_FAZLA_SATIR).map((u) => (TUR === 'yeni'\n    ? `• ${u.ad} (#${u.urun_id}) — ${usd(u.fiyat)}\\n  ${u.aciklama ?? ''}\\n  ${u.url}`\n    : `• ${u.ad} (#${u.urun_id}): ${usd(u.onceki_fiyat)} → ${usd(u.fiyat)} (${isaretli(u.fark_yuzde)})\\n  ${u.url}`));\n  if (sirali.length > EN_FAZLA_SATIR) {\n    satirlar.push(`… ve ${sirali.length - EN_FAZLA_SATIR} ürün daha (tam liste: Google Sheets › fiyat_gecmisi)`);\n  }\n}\n\nlet mesaj = `${BASLIKLAR[TUR]} — ${urunler.length} ürün\\n${zaman}\\n\\n${satirlar.join('\\n')}`;\nif (mesaj.length > MESAJ_SINIRI) mesaj = `${mesaj.slice(0, MESAJ_SINIRI - 1)}…`;\n\nreturn [{ json: { tur: TUR, adet: urunler.length, mesaj } }];\n"
+      }
+    },
+    {
+      "id": "cab0464a-be2c-2f93-125c-d0279f8fcebb",
+      "name": "Fiyat Artışı Mesajı",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        -60
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// n8n Code düğümü: Switch dalı için bildirim metni (Run Once for All Items)\n// Aynı kod üç dalda kullanılır; TUR değeri workflow.json üretilirken yerleştirilir.\n// Her dal TEK mesaj üretir (ürün başına mesaj yok → ilk çalışmada 117 mesajlık spam olmaz).\n\nconst TUR = 'artis'; // indirim | artis | yeni\nconst BASLIKLAR = { indirim: '📉 İndirim Alarmı', artis: '📈 Fiyat Artışı', yeni: '🆕 Yeni Ürün' };\nconst EN_FAZLA_SATIR = 15;\nconst MESAJ_SINIRI = 4000; // Telegram tek mesaj sınırı 4096 karakter\n\nconst urunler = $input.all().map((item) => item.json);\nif (urunler.length === 0) return [];\n\nconst usd = (deger) => `$${Number(deger).toFixed(2)}`;\nconst isaretli = (deger) => `${deger > 0 ? '+' : ''}${deger}%`;\nconst zaman = new Date(urunler[0].scraped_at).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });\n\nlet satirlar;\nif (TUR === 'yeni' && urunler[0].ilk_calisma) {\n  satirlar = [\n    `İlk çalışma: ${urunler.length} ürün referans fiyat olarak kaydedildi.`,\n    'Bundan sonraki çalışmalarda yalnızca fiyat değişiklikleri ve yeni ürünler bildirilecek.',\n  ];\n} else {\n  const sirali = [...urunler].sort((a, b) => (TUR === 'yeni'\n    ? a.fiyat - b.fiyat\n    : Math.abs(b.fark_yuzde ?? 0) - Math.abs(a.fark_yuzde ?? 0)));\n  satirlar = sirali.slice(0, EN_FAZLA_SATIR).map((u) => (TUR === 'yeni'\n    ? `• ${u.ad} (#${u.urun_id}) — ${usd(u.fiyat)}\\n  ${u.aciklama ?? ''}\\n  ${u.url}`\n    : `• ${u.ad} (#${u.urun_id}): ${usd(u.onceki_fiyat)} → ${usd(u.fiyat)} (${isaretli(u.fark_yuzde)})\\n  ${u.url}`));\n  if (sirali.length > EN_FAZLA_SATIR) {\n    satirlar.push(`… ve ${sirali.length - EN_FAZLA_SATIR} ürün daha (tam liste: Google Sheets › fiyat_gecmisi)`);\n  }\n}\n\nlet mesaj = `${BASLIKLAR[TUR]} — ${urunler.length} ürün\\n${zaman}\\n\\n${satirlar.join('\\n')}`;\nif (mesaj.length > MESAJ_SINIRI) mesaj = `${mesaj.slice(0, MESAJ_SINIRI - 1)}…`;\n\nreturn [{ json: { tur: TUR, adet: urunler.length, mesaj } }];\n"
+      }
+    },
+    {
+      "id": "5eb289f2-5b74-54ef-bf0e-9461a92afc15",
+      "name": "Yeni Ürün Mesajı",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// n8n Code düğümü: Switch dalı için bildirim metni (Run Once for All Items)\n// Aynı kod üç dalda kullanılır; TUR değeri workflow.json üretilirken yerleştirilir.\n// Her dal TEK mesaj üretir (ürün başına mesaj yok → ilk çalışmada 117 mesajlık spam olmaz).\n\nconst TUR = 'yeni'; // indirim | artis | yeni\nconst BASLIKLAR = { indirim: '📉 İndirim Alarmı', artis: '📈 Fiyat Artışı', yeni: '🆕 Yeni Ürün' };\nconst EN_FAZLA_SATIR = 15;\nconst MESAJ_SINIRI = 4000; // Telegram tek mesaj sınırı 4096 karakter\n\nconst urunler = $input.all().map((item) => item.json);\nif (urunler.length === 0) return [];\n\nconst usd = (deger) => `$${Number(deger).toFixed(2)}`;\nconst isaretli = (deger) => `${deger > 0 ? '+' : ''}${deger}%`;\nconst zaman = new Date(urunler[0].scraped_at).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });\n\nlet satirlar;\nif (TUR === 'yeni' && urunler[0].ilk_calisma) {\n  satirlar = [\n    `İlk çalışma: ${urunler.length} ürün referans fiyat olarak kaydedildi.`,\n    'Bundan sonraki çalışmalarda yalnızca fiyat değişiklikleri ve yeni ürünler bildirilecek.',\n  ];\n} else {\n  const sirali = [...urunler].sort((a, b) => (TUR === 'yeni'\n    ? a.fiyat - b.fiyat\n    : Math.abs(b.fark_yuzde ?? 0) - Math.abs(a.fark_yuzde ?? 0)));\n  satirlar = sirali.slice(0, EN_FAZLA_SATIR).map((u) => (TUR === 'yeni'\n    ? `• ${u.ad} (#${u.urun_id}) — ${usd(u.fiyat)}\\n  ${u.aciklama ?? ''}\\n  ${u.url}`\n    : `• ${u.ad} (#${u.urun_id}): ${usd(u.onceki_fiyat)} → ${usd(u.fiyat)} (${isaretli(u.fark_yuzde)})\\n  ${u.url}`));\n  if (sirali.length > EN_FAZLA_SATIR) {\n    satirlar.push(`… ve ${sirali.length - EN_FAZLA_SATIR} ürün daha (tam liste: Google Sheets › fiyat_gecmisi)`);\n  }\n}\n\nlet mesaj = `${BASLIKLAR[TUR]} — ${urunler.length} ürün\\n${zaman}\\n\\n${satirlar.join('\\n')}`;\nif (mesaj.length > MESAJ_SINIRI) mesaj = `${mesaj.slice(0, MESAJ_SINIRI - 1)}…`;\n\nreturn [{ json: { tur: TUR, adet: urunler.length, mesaj } }];\n"
+      }
+    },
+    {
+      "id": "e4059271-1078-4b82-2c48-b162228bc462",
+      "name": "Telegram Bildirimi",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2000,
+        -60
+      ],
+      "parameters": {
+        "chatId": "TELEGRAM_CHAT_ID",
+        "text": "={{ $json.mesaj }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      }
+    },
+    {
+      "id": "345f60f3-2a98-b688-e743-cfb4925c57c3",
+      "name": "Hata Yakalayıcı (Error Trigger)",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        960,
+        460
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "70585e98-588a-dfbf-1658-96adfa490035",
+      "name": "Hata Mesajı Hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// n8n Code düğümü: \"Hata Mesajı Hazırla\" (Run Once for All Items)\n// Dört kaynaktan beslenir; hiçbiri sessizce \"başarılı\" bitmez:\n//   1. HTTP Request hata çıkışı (4xx/5xx, zaman aşımı, DNS — 3 deneme sonrası)\n//   2. \"Veri Geçerli mi?\" false dalı (0 ürün ya da eksik veri)\n//   3. Google Sheets okuma hatası (önceki durum okunamadı)\n//   4. Error Trigger (akışın herhangi bir yerinde beklenmeyen çöküş)\n\nconst girdi = $input.first().json;\nconst hataMetni = (e) => (typeof e === 'string' ? e : e?.message || e?.description || JSON.stringify(e));\n\nlet kaynak;\nlet neden;\nif (girdi.execution && girdi.execution.error) {\n  kaynak = 'Beklenmeyen akış hatası';\n  neden = `${girdi.execution.lastNodeExecuted || 'bilinmeyen düğüm'}: ${hataMetni(girdi.execution.error)}`;\n} else if (girdi.error) {\n  kaynak = 'Erişim hatası';\n  const kod = girdi.error.httpCode || girdi.error.status || girdi.error.statusCode;\n  neden = `${kod ? `HTTP ${kod} — ` : ''}${hataMetni(girdi.error)}`;\n} else if (girdi.veri_gecerli === false) {\n  kaynak = 'Veri doğrulama hatası';\n  neden = girdi.hata_nedeni;\n} else {\n  kaynak = 'Bilinmeyen hata';\n  neden = 'Hata dalına tanımsız bir girdi ulaştı.';\n}\n\nconst satirlar = [\n  '🚨 ACİL: Laptop fiyat takip akışı başarısız',\n  '',\n  `Tür: ${kaynak}`,\n  `Neden: ${neden}`,\n  `Zaman: ${new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })}`,\n  'Kaynak: https://webscraper.io/test-sites/e-commerce/static/computers/laptops',\n];\nif (girdi.sayfa_sayisi !== undefined) {\n  satirlar.push(`Taranan sayfa: ${girdi.sayfa_sayisi} · Ayrıştırılan ürün: ${girdi.urun_sayisi}`\n    + (girdi.beklenen_urun ? ` / beklenen ${girdi.beklenen_urun}` : ''));\n}\nsatirlar.push('');\nsatirlar.push(kaynak === 'Beklenmeyen akış hatası'\n  ? 'Çalışma yarıda kaldı; fiyat tablosunu ve bildirimleri kontrol edin.'\n  : 'Önceki fiyat tablosu korunuyor: bugünkü veri tabloya YAZILMADI, değişiklik bildirimi gönderilmedi.');\nif (girdi.execution && girdi.execution.url) satirlar.push(`Çalışma kaydı: ${girdi.execution.url}`);\n\nreturn [{ json: { seviye: 'kritik', kaynak, neden, mesaj: satirlar.join('\\n') } }];\n"
+      }
+    },
+    {
+      "id": "e9f51031-5257-9506-11a5-fdea68b26f3a",
+      "name": "Acil Uyarı (Telegram)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1480,
+        360
+      ],
+      "parameters": {
+        "chatId": "TELEGRAM_CHAT_ID",
+        "text": "={{ $json.mesaj }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      }
+    },
+    {
+      "id": "c70d150c-eb04-4498-c9e5-b03cde47f9bc",
+      "name": "Not: Hata Dalı",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "content": "### Hata dalı — akış sessizce \"başarılı\" bitmez\nHTTP 4xx/5xx · zaman aşımı (3 deneme sonrası) · 0 ürün · eksik veri (<%90) · Sheets okuma hatası · beklenmeyen çöküş",
+        "width": 760,
+        "height": 300,
+        "color": 3
+      }
+    }
+  ],
+  "connections": {
+    "Her Gün 09:00": {
+      "main": [
+        [
+          {
+            "node": "Laptop Sayfalarını Çek (Sayfalama)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Laptop Sayfalarını Çek (Sayfalama)": {
+      "main": [
+        [
+          {
+            "node": "Ürünleri Ayrıştır ve Temizle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hata Mesajı Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ürünleri Ayrıştır ve Temizle": {
+      "main": [
+        [
+          {
+            "node": "Veri Geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veri Geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Önceki Durumu Oku (son_durum)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hata Mesajı Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Önceki Durumu Oku (son_durum)": {
+      "main": [
+        [
+          {
+            "node": "Değişiklik Tespiti",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hata Mesajı Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Değişiklik Tespiti": {
+      "main": [
+        [
+          {
+            "node": "Fiyat Geçmişine Yaz (fiyat_gecmisi)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Son Durumu Güncelle (son_durum)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Değişim Türüne Göre Ayır",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Değişim Türüne Göre Ayır": {
+      "main": [
+        [
+          {
+            "node": "İndirim Alarmı Mesajı",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fiyat Artışı Mesajı",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Yeni Ürün Mesajı",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "İndirim Alarmı Mesajı": {
+      "main": [
+        [
+          {
+            "node": "Telegram Bildirimi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fiyat Artışı Mesajı": {
+      "main": [
+        [
+          {
+            "node": "Telegram Bildirimi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yeni Ürün Mesajı": {
+      "main": [
+        [
+          {
+            "node": "Telegram Bildirimi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hata Yakalayıcı (Error Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Hata Mesajı Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hata Mesajı Hazırla": {
+      "main": [
+        [
+          {
+            "node": "Acil Uyarı (Telegram)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Istanbul",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
